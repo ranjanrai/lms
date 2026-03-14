@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Apply Leave</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+margin:0;
+padding:0;
+}
+
+.container{
+width:400px;
+margin:60px auto;
+background:white;
+padding:30px;
+border-radius:6px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+input,select,textarea{
+width:100%;
+padding:10px;
+margin:10px 0;
+border:1px solid #ccc;
+border-radius:4px;
+}
+
+button{
+width:100%;
+padding:10px;
+background:#2d7ef7;
+color:white;
+border:none;
+cursor:pointer;
+font-size:16px;
+}
+
+button:hover{
+background:#1b5edb;
+}
+
+.back{
+margin-top:15px;
+display:block;
+text-align:center;
+text-decoration:none;
+color:#2d7ef7;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Apply Leave</h2>
+
+<form id="leaveForm">
+
+<label>Leave Type</label>
+
+<select id="leaveType">
+
+<option value="">Select Leave</option>
+<option>Casual Leave</option>
+<option>Sick Leave</option>
+<option>Paid Leave</option>
+
+</select>
+
+
+<label>Start Date</label>
+<input type="date" id="startDate">
+
+
+<label>End Date</label>
+<input type="date" id="endDate">
+
+
+<label>Reason</label>
+
+<textarea id="reason" placeholder="Enter reason"></textarea>
+
+
+<button type="button" onclick="applyLeave()">
+
+Submit Leave Request
+
+</button>
+
+</form>
+
+
+<a class="back" href="employee-dashboard.html">
+
+← Back to Dashboard
+
+</a>
+
+</div>
+
+
+
+<!-- FIREBASE LIBRARIES -->
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+<script src="js/leave.js"></script>
+
+</body>
+
+</html>

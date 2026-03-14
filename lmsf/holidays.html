@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Holiday Management</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+margin:0;
+padding:0;
+}
+
+.container{
+width:700px;
+margin:40px auto;
+background:white;
+padding:30px;
+border-radius:6px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+input,textarea{
+width:100%;
+padding:10px;
+margin:10px 0;
+border:1px solid #ccc;
+border-radius:4px;
+}
+
+button{
+padding:10px 20px;
+background:#2d7ef7;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+button:hover{
+background:#1b5edb;
+}
+
+table{
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+}
+
+th,td{
+padding:10px;
+border:1px solid #ddd;
+text-align:center;
+}
+
+th{
+background:#f0f0f0;
+}
+
+.back{
+margin-top:20px;
+display:block;
+text-align:center;
+text-decoration:none;
+color:#2d7ef7;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Holiday Management</h2>
+
+<!-- ADD HOLIDAY -->
+
+<h3>Add Holiday</h3>
+
+<input type="text" id="holidayName" placeholder="Holiday Name">
+
+<input type="date" id="holidayDate">
+
+<textarea id="holidayDescription" placeholder="Description"></textarea>
+
+<button onclick="addHoliday()">Add Holiday</button>
+
+
+<!-- HOLIDAY TABLE -->
+
+<h3>Holiday List</h3>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Name</th>
+<th>Date</th>
+<th>Description</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="holidayTable"></tbody>
+
+</table>
+
+<a class="back" href="admin-dashboard.html">
+← Back to Dashboard
+</a>
+
+</div>
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+
+
+<script>
+
+// ADD HOLIDAY
+
+function addHoliday(){
+
+let name = document.getElementById("holidayName").value
+let date = document.getElementById("holidayDate").value
+let description = document.getElementById("holidayDescription").value
+
+db.collection("holidays").add({
+
+holiday_name:name,
+holiday_date:date,
+description:description
+
+})
+
+.then(()=>{
+
+alert("Holiday Added")
+
+loadHolidays()
+
+})
+
+}
+
+
+// LOAD HOLIDAYS
+
+function loadHolidays(){
+
+db.collection("holidays")
+.orderBy("holiday_date")
+.onSnapshot(snapshot=>{
+
+let html=""
+
+snapshot.forEach(doc=>{
+
+let d=doc.data()
+
+html += `
+<tr>
+
+<td>${d.holiday_name}</td>
+<td>${d.holiday_date}</td>
+<td>${d.description}</td>
+
+<td>
+<button onclick="deleteHoliday('${doc.id}')">
+Delete
+</button>
+</td>
+
+</tr>
+`
+
+})
+
+document.getElementById("holidayTable").innerHTML=html
+
+})
+
+}
+
+
+// DELETE HOLIDAY
+
+function deleteHoliday(id){
+
+db.collection("holidays")
+.doc(id)
+.delete()
+
+}
+
+
+// AUTO LOAD
+
+loadHolidays()
+
+</script>
+
+</body>
+
+</html>
