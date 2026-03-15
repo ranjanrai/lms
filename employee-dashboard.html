@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Employee Dashboard</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+display:flex;
+background:#f4f6f9;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:220px;
+background:#2d7ef7;
+height:100vh;
+color:white;
+padding:20px;
+}
+
+.sidebar h2{
+text-align:center;
+}
+
+.sidebar a{
+display:block;
+padding:10px;
+color:white;
+text-decoration:none;
+margin-top:10px;
+}
+
+.sidebar a:hover{
+background:#1b5edb;
+}
+
+.sidebar button{
+margin-top:20px;
+padding:10px;
+width:100%;
+border:none;
+background:white;
+color:#2d7ef7;
+cursor:pointer;
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:20px;
+}
+
+/* CARDS */
+
+.cards{
+display:flex;
+gap:20px;
+margin-bottom:30px;
+}
+
+.card{
+background:white;
+padding:20px;
+width:200px;
+border-radius:6px;
+box-shadow:0 0 8px rgba(0,0,0,0.1);
+text-align:center;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+th,td{
+padding:10px;
+border:1px solid #ddd;
+text-align:center;
+}
+
+th{
+background:#f0f0f0;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<h2>Employee</h2>
+
+<a href="#">Dashboard</a>
+<a href="apply-leave.html">Apply Leave</a>
+<a href="leave-history.html">Leave History</a>
+
+<button onclick="logout()">Logout</button>
+
+</div>
+
+
+<!-- MAIN -->
+
+<div class="main">
+
+<h1>Employee Dashboard</h1>
+
+
+<!-- DASHBOARD CARDS -->
+
+<div class="cards">
+
+<div class="card">
+<h3>Total Leaves</h3>
+<p id="totalLeaves">0</p>
+</div>
+
+<div class="card">
+<h3>Pending</h3>
+<p id="pendingLeaves">0</p>
+</div>
+
+<div class="card">
+<h3>Approved</h3>
+<p id="approvedLeaves">0</p>
+</div>
+<h3>Leave Balance</h3>
+
+<table border="1" width="100%">
+<thead>
+<tr>
+<th>Leave Type</th>
+<th>Maximum Leave</th>
+<th>Used Leave</th>
+<th>Remaining Leave</th>
+</tr>
+</thead>
+
+<tbody id="leaveBalanceTable">
+</tbody>
+
+</table>
+</div>
+
+
+<!-- RECENT LEAVE REQUESTS -->
+
+<h2>Recent Leave Requests</h2>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Leave Type</th>
+<th>Start Date</th>
+<th>End Date</th>
+<th>Status</th>
+</tr>
+
+</thead>
+
+<tbody id="leaveTable"></tbody>
+
+</table>
+
+</div>
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/employee-dashboard.js"></script>
+
+</body>
+
+</html>

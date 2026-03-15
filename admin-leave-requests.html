@@ -1,0 +1,273 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Leave Requests</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+body{
+font-family:Arial;
+margin:0;
+display:flex;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:220px;
+background:#2d7ef7;
+height:100vh;
+color:white;
+padding:20px;
+}
+
+.sidebar h2{
+text-align:center;
+}
+
+.sidebar a{
+display:block;
+color:white;
+padding:10px;
+text-decoration:none;
+margin-top:10px;
+}
+
+.sidebar a:hover{
+background:#1b5edb;
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:20px;
+background:#f4f6f9;
+}
+
+/* TABLE */
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:10px;
+text-align:center;
+}
+
+th{
+background:#f0f0f0;
+}
+
+button{
+padding:6px 10px;
+border:none;
+cursor:pointer;
+color:white;
+}
+
+.approve{
+background:green;
+}
+
+.reject{
+background:red;
+}
+
+.logout{
+background:#e74c3c;
+margin-top:20px;
+width:100%;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<h2>Admin</h2>
+
+<a href="admin-dashboard.html">Dashboard</a>
+<a href="admin-employee-approval.html">Aprroval Employees Registration</a>
+<a href="admin-leave-requests.html">Leave Requests</a>
+<a href="leave-types.html">Leave Type</a>
+<a href="holidays.html">Holidays</a>
+
+<button class="logout" onclick="logout()">Logout</button>
+
+</div>
+
+
+
+<!-- MAIN -->
+
+<div class="main">
+
+<h1>Leave Requests</h1>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Employee</th>
+<th>Email</th>
+<th>Leave Type</th>
+<th>Start</th>
+<th>End</th>
+<th>Reason</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="leaveTable"></tbody>
+
+</table>
+
+</div>
+
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+
+<script>
+
+
+// check admin login
+auth.onAuthStateChanged(async function(user){
+
+if(!user){
+window.location.href="login.html";
+return;
+}
+
+const doc = await db.collection("users").doc(user.uid).get();
+
+if(!doc.exists || doc.data().role !== "admin"){
+alert("Access denied");
+window.location.href="login.html";
+}
+
+});
+
+
+
+// LOAD LEAVE REQUESTS
+
+const tableBody = document.getElementById("leaveTable");
+
+db.collection("leaves")
+.orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+
+tableBody.innerHTML="";
+
+snapshot.forEach(doc=>{
+
+const data = doc.data();
+
+const row = `
+<tr>
+
+<td>${data.name}</td>
+<td>${data.email}</td>
+<td>${data.leaveType}</td>
+<td>${data.startDate}</td>
+<td>${data.endDate}</td>
+<td>${data.reason}</td>
+<td>${data.status}</td>
+
+<td>
+
+<button class="approve" onclick="approveLeave('${doc.id}')">
+Approve
+</button>
+
+<button class="reject" onclick="rejectLeave('${doc.id}')">
+Reject
+</button>
+
+</td>
+
+</tr>
+`;
+
+tableBody.innerHTML += row;
+
+});
+
+});
+
+
+
+// APPROVE LEAVE
+function approveLeave(id){
+
+db.collection("leaves").doc(id).update({
+status:"approved"
+})
+
+.then(()=>{
+
+alert("Leave approved")
+
+})
+
+}
+
+
+
+// REJECT LEAVE
+function rejectLeave(id){
+
+db.collection("leaves").doc(id).update({
+status:"rejected"
+})
+
+.then(()=>{
+
+alert("Leave rejected")
+
+})
+
+}
+
+
+
+// LOGOUT
+function logout(){
+
+auth.signOut().then(()=>{
+window.location.href="login.html";
+})
+
+}
+
+</script>
+
+</body>
+</html>
+
