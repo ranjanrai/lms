@@ -12,6 +12,32 @@ font-family:Arial, Helvetica, sans-serif;
 body{
 display:flex;
 background:#f4f6f9;
+min-height:100vh;
+}
+
+/* ======================
+MOBILE HEADER
+====================== */
+
+.mobile-header{
+display:none;
+background:#2d7ef7;
+color:white;
+padding:15px;
+align-items:center;
+}
+
+.mobile-title{
+flex:1;
+text-align:center;
+}
+
+.menu-btn{
+font-size:24px;
+background:none;
+border:none;
+color:white;
+cursor:pointer;
 }
 
 /* ======================
@@ -19,16 +45,17 @@ SIDEBAR
 ====================== */
 
 .sidebar{
-width:220px;
+width:230px;
 background:#2d7ef7;
 min-height:100vh;
 color:white;
 padding:20px;
+transition:0.3s;
 }
 
 .sidebar h2{
 text-align:center;
-margin-bottom:30px;
+margin-bottom:25px;
 }
 
 .sidebar a{
@@ -37,7 +64,8 @@ color:white;
 text-decoration:none;
 padding:12px;
 margin-bottom:10px;
-border-radius:6px;
+border-radius:8px;
+transition:0.2s;
 }
 
 .sidebar a:hover{
@@ -60,18 +88,18 @@ CARDS
 .cards{
 display:flex;
 gap:20px;
-margin-top:20px;
 flex-wrap:wrap;
+margin-top:20px;
 }
 
 .card{
 background:white;
-padding:30px;
-border-radius:10px;
+padding:25px;
+border-radius:12px;
 flex:1;
-min-width:200px;
+min-width:220px;
 text-align:center;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
 
 /* ======================
@@ -82,17 +110,18 @@ table{
 width:100%;
 border-collapse:collapse;
 background:white;
-margin-top:15px;
+margin-top:20px;
+border-radius:10px;
+overflow:hidden;
 }
 
 th,td{
-padding:10px;
-border:1px solid #ddd;
-text-align:left;
+padding:12px;
+border-bottom:1px solid #eee;
 }
 
 th{
-background:#f0f0f0;
+background:#f3f3f3;
 }
 
 /* ======================
@@ -108,7 +137,7 @@ flex-direction:column;
 }
 
 /* ======================
-MOBILE
+MOBILE VIEW
 ====================== */
 
 @media (max-width:768px){
@@ -117,24 +146,28 @@ body{
 flex-direction:column;
 }
 
-.sidebar{
-width:100%;
-min-height:auto;
+.mobile-header{
 display:flex;
-flex-wrap:wrap;
-justify-content:center;
 }
 
-.sidebar a{
-margin:5px;
-padding:10px 15px;
+.sidebar{
+position:fixed;
+left:-240px;
+top:0;
+height:100%;
+z-index:1000;
+}
+
+.sidebar.show{
+left:0;
 }
 
 .main{
-padding:15px;
+padding:20px;
+margin-top:10px;
 }
 
-/* table scroll */
+/* TABLE SCROLL */
 
 table{
 display:block;

@@ -91,27 +91,56 @@ cursor:pointer;
 button:hover{
 background:#1b5edb;
 }
+.notification-container{
+margin-bottom:20px;
+}
 
+.notification{
+background:white;
+padding:10px 15px;
+border-left:5px solid #2d7ef7;
+margin-bottom:10px;
+border-radius:6px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+font-size:14px;
+}
+
+.notification strong{
+color:#2d7ef7;
+}
+
+.notification-time{
+font-size:12px;
+color:#777;
+margin-top:4px;
+}
 </style>
 
 </head>
 
 <body>
+<!-- MOBILE HEADER -->
+<div class="mobile-header">
 
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<h2 class="mobile-title">Leave System</h2>
+
+</div>
 
 <!-- SIDEBAR -->
 
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
 
-<h2>Admin</h2>
+<h2>Admin Panel</h2>
 
 <a href="admin-dashboard.html">Dashboard</a>
-<a href="admin-employee-approval.html">Aprroval Employees Registration</a>
 <a href="admin-leave-requests.html">Leave Requests</a>
-<a href="leave-types.html">Leave Type</a>
+<a href="admin-employee-approval.html">Employee Approval</a>
+<a href="leave-types.html">Leave type</a>
+<a href="leave-settings.html">Leave Settings</a>
 <a href="holidays.html">Holidays</a>
-
-<button onclick="logout()">Logout</button>
+<a href="index.html">Logout</a>
 
 </div>
 
@@ -122,8 +151,17 @@ background:#1b5edb;
 <div class="main">
 
 <h1>Admin Dashboard</h1>
+<h2>Notifications</h2>
 
+<div id="notificationList" class="notification-container">
+Loading notifications...
+</div>
 
+<button onclick="loadHiddenNotifications()">
+Show Hidden Notifications
+</button>
+
+<div id="hiddenNotifications"></div>
 <!-- DASHBOARD CARDS -->
 
 <div class="cards">
@@ -219,7 +257,17 @@ background:#1b5edb;
 
 <script src="js/firebase.js"></script>
 <script src="js/admin.js"></script>
+<script>
 
+function toggleMenu(){
+
+let sidebar = document.getElementById("sidebar")
+
+sidebar.classList.toggle("show")
+
+}
+
+</script>
 </body>
 
 </html>

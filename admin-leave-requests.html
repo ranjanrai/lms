@@ -98,17 +98,28 @@ width:100%;
 
 <!-- SIDEBAR -->
 
-<div class="sidebar">
+<!-- MOBILE HEADER -->
+<div class="mobile-header">
 
-<h2>Admin</h2>
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<h2 class="mobile-title">Leave System</h2>
+
+</div>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+
+<h2>Admin Panel</h2>
 
 <a href="admin-dashboard.html">Dashboard</a>
-<a href="admin-employee-approval.html">Aprroval Employees Registration</a>
 <a href="admin-leave-requests.html">Leave Requests</a>
-<a href="leave-types.html">Leave Type</a>
+<a href="admin-employee-approval.html">Employee Approval</a>
+<a href="leave-types.html">Leave type</a>
+<a href="leave-settings.html">Leave Settings</a>
 <a href="holidays.html">Holidays</a>
-
-<button class="logout" onclick="logout()">Logout</button>
+<a href="index.html">Logout</a>
 
 </div>
 
@@ -265,7 +276,13 @@ window.location.href="login.html";
 })
 
 }
+function toggleMenu(){
 
+let sidebar = document.getElementById("sidebar")
+
+sidebar.classList.toggle("show")
+
+}
 </script>
 
 </body>

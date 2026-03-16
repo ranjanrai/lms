@@ -9,6 +9,8 @@
 
 <style>
 
+/* GLOBAL */
+
 body{
 margin:0;
 font-family:Arial;
@@ -16,47 +18,76 @@ display:flex;
 background:#f4f6f9;
 }
 
+/* MOBILE HEADER */
+
+.mobile-header{
+display:none;
+background:#2d7ef7;
+color:white;
+padding:15px;
+align-items:center;
+}
+
+.menu-btn{
+font-size:22px;
+background:none;
+border:none;
+color:white;
+cursor:pointer;
+}
+
+.mobile-header h2{
+flex:1;
+text-align:center;
+margin:0;
+}
+
 /* SIDEBAR */
 
 .sidebar{
-width:220px;
+width:230px;
 background:#2d7ef7;
 height:100vh;
 color:white;
 padding:20px;
+transition:0.3s;
 }
 
 .sidebar h2{
 text-align:center;
+margin-bottom:30px;
 }
 
 .sidebar a{
 display:block;
-padding:10px;
+padding:12px;
 color:white;
 text-decoration:none;
-margin-top:10px;
+margin-bottom:10px;
+border-radius:6px;
 }
 
 .sidebar a:hover{
-background:#1b5edb;
+background:rgba(255,255,255,0.2);
 }
 
 .sidebar button{
 margin-top:20px;
-padding:10px;
+padding:12px;
 width:100%;
 border:none;
 background:white;
 color:#2d7ef7;
 cursor:pointer;
+border-radius:6px;
+font-weight:bold;
 }
 
 /* MAIN */
 
 .main{
 flex:1;
-padding:20px;
+padding:30px;
 }
 
 /* CARDS */
@@ -64,15 +95,17 @@ padding:20px;
 .cards{
 display:flex;
 gap:20px;
+flex-wrap:wrap;
 margin-bottom:30px;
 }
 
 .card{
 background:white;
-padding:20px;
-width:200px;
-border-radius:6px;
-box-shadow:0 0 8px rgba(0,0,0,0.1);
+padding:25px;
+flex:1;
+min-width:200px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.08);
 text-align:center;
 }
 
@@ -82,16 +115,59 @@ table{
 width:100%;
 border-collapse:collapse;
 background:white;
+border-radius:8px;
+overflow:hidden;
+margin-top:15px;
 }
 
 th,td{
-padding:10px;
-border:1px solid #ddd;
+padding:12px;
+border-bottom:1px solid #eee;
 text-align:center;
 }
 
 th{
-background:#f0f0f0;
+background:#f4f4f4;
+}
+
+/* MOBILE */
+
+@media (max-width:768px){
+
+body{
+flex-direction:column;
+}
+
+.mobile-header{
+display:flex;
+}
+
+.sidebar{
+position:fixed;
+left:-240px;
+top:0;
+height:100%;
+z-index:1000;
+}
+
+.sidebar.show{
+left:0;
+}
+
+.main{
+padding:20px;
+}
+
+.cards{
+flex-direction:column;
+}
+
+table{
+display:block;
+overflow-x:auto;
+white-space:nowrap;
+}
+
 }
 
 </style>
@@ -100,9 +176,19 @@ background:#f0f0f0;
 
 <body>
 
+<!-- MOBILE HEADER -->
+
+<div class="mobile-header">
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<h2>Employee Panel</h2>
+
+</div>
+
 <!-- SIDEBAR -->
 
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
 
 <h2>Employee</h2>
 
@@ -114,13 +200,11 @@ background:#f0f0f0;
 
 </div>
 
-
-<!-- MAIN -->
+<!-- MAIN CONTENT -->
 
 <div class="main">
 
 <h1>Employee Dashboard</h1>
-
 
 <!-- DASHBOARD CARDS -->
 
@@ -140,28 +224,34 @@ background:#f0f0f0;
 <h3>Approved</h3>
 <p id="approvedLeaves">0</p>
 </div>
-<h3>Leave Balance</h3>
 
-<table border="1" width="100%">
-<thead>
-<tr>
-<th>Leave Type</th>
-<th>Maximum Leave</th>
-<th>Used Leave</th>
-<th>Remaining Leave</th>
-</tr>
-</thead>
-
-<tbody id="leaveBalanceTable">
-</tbody>
-
-</table>
 </div>
 
+<!-- LEAVE BALANCE -->
 
-<!-- RECENT LEAVE REQUESTS -->
+<h2>Leave Balance</h2>
 
-<h2>Recent Leave Requests</h2>
+<table>
+
+<thead>
+
+<tr>
+<th>Leave Type</th>
+<th>Maximum</th>
+<th>Used</th>
+<th>Remaining</th>
+</tr>
+
+</thead>
+
+<tbody id="leaveBalanceTable"></tbody>
+
+</table>
+
+
+<!-- RECENT LEAVES -->
+
+<h2 style="margin-top:40px;">Recent Leave Requests</h2>
 
 <table>
 
@@ -182,7 +272,6 @@ background:#f0f0f0;
 
 </div>
 
-
 <!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -193,6 +282,15 @@ background:#f0f0f0;
 <script src="js/auth.js"></script>
 <script src="js/employee-dashboard.js"></script>
 
-</body>
+<script>
 
+function toggleMenu(){
+
+document.getElementById("sidebar").classList.toggle("show")
+
+}
+
+</script>
+
+</body>
 </html>

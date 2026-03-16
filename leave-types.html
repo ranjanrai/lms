@@ -83,7 +83,32 @@ color:#2d7ef7;
 </head>
 
 <body>
+<!-- SIDEBAR -->
 
+<!-- MOBILE HEADER -->
+<div class="mobile-header">
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<h2 class="mobile-title">Leave System</h2>
+
+</div>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+
+<h2>Admin Panel</h2>
+
+<a href="admin-dashboard.html">Dashboard</a>
+<a href="admin-leave-requests.html">Leave Requests</a>
+<a href="admin-employee-approval.html">Employee Approval</a>
+<a href="leave-types.html">Leave type</a>
+<a href="leave-settings.html">Leave Settings</a>
+<a href="holidays.html">Holidays</a>
+<a href="index.html">Logout</a>
+
+</div>
 <div class="container">
 
 <h2>Leave Type Management</h2>
@@ -140,13 +165,50 @@ color:#2d7ef7;
 
 <script>
 
-// ADD LEAVE TYPE
+let editId = null
+
+// ============================
+// ADD OR UPDATE LEAVE TYPE
+// ============================
 
 function addLeaveType(){
 
-let name=document.getElementById("leaveName").value
-let days=document.getElementById("maxDays").value
-let description=document.getElementById("description").value
+let name = document.getElementById("leaveName").value
+let days = document.getElementById("maxDays").value
+let description = document.getElementById("description").value
+
+if(name=="" || days==""){
+alert("Please fill required fields")
+return
+}
+
+// UPDATE MODE
+if(editId){
+
+db.collection("leave_types")
+.doc(editId)
+.update({
+
+name:name,
+max_days:days,
+description:description
+
+})
+
+.then(()=>{
+
+alert("Leave Type Updated")
+
+editId = null
+
+clearForm()
+
+})
+
+}
+
+// ADD MODE
+else{
 
 db.collection("leave_types").add({
 
@@ -160,15 +222,19 @@ description:description
 
 alert("Leave Type Added")
 
-loadLeaveTypes()
+clearForm()
 
 })
 
 }
 
+}
 
 
+
+// ============================
 // LOAD LEAVE TYPES
+// ============================
 
 function loadLeaveTypes(){
 
@@ -179,9 +245,9 @@ let html=""
 
 snapshot.forEach(doc=>{
 
-let d=doc.data()
+let d = doc.data()
 
-html+=`
+html += `
 
 <tr>
 
@@ -190,6 +256,10 @@ html+=`
 <td>${d.description}</td>
 
 <td>
+
+<button onclick="editLeaveType('${doc.id}','${d.name}','${d.max_days}','${d.description}')">
+Edit
+</button>
 
 <button class="delete" onclick="deleteLeaveType('${doc.id}')">
 Delete
@@ -203,7 +273,7 @@ Delete
 
 })
 
-document.getElementById("leaveTypeTable").innerHTML=html
+document.getElementById("leaveTypeTable").innerHTML = html
 
 })
 
@@ -211,9 +281,31 @@ document.getElementById("leaveTypeTable").innerHTML=html
 
 
 
+// ============================
+// EDIT LEAVE TYPE
+// ============================
+
+function editLeaveType(id,name,days,description){
+
+editId = id
+
+document.getElementById("leaveName").value = name
+document.getElementById("maxDays").value = days
+document.getElementById("description").value = description
+
+window.scrollTo(0,0)
+
+}
+
+
+
+// ============================
 // DELETE LEAVE TYPE
+// ============================
 
 function deleteLeaveType(id){
+
+if(confirm("Delete this leave type?")){
 
 db.collection("leave_types")
 .doc(id)
@@ -221,11 +313,43 @@ db.collection("leave_types")
 
 }
 
+}
 
 
+
+// ============================
+// CLEAR FORM
+// ============================
+
+function clearForm(){
+
+document.getElementById("leaveName").value = ""
+document.getElementById("maxDays").value = ""
+document.getElementById("description").value = ""
+
+}
+
+
+
+// ============================
 // AUTO LOAD
+// ============================
 
 loadLeaveTypes()
+
+
+
+// ============================
+// MOBILE SIDEBAR TOGGLE
+// ============================
+
+function toggleMenu(){
+
+let sidebar = document.getElementById("sidebar")
+
+sidebar.classList.toggle("show")
+
+}
 
 </script>
 

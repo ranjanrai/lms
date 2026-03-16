@@ -31,13 +31,24 @@ leaveTypeSelect.appendChild(option)
 // APPLY LEAVE
 // ===========================
 
+// ===========================
+// APPLY LEAVE
+// ===========================
+
 async function applyLeave(){
 
 let leaveType = document.getElementById("leaveType").value
 let startDate = document.getElementById("startDate").value
 let endDate = document.getElementById("endDate").value
 let reason = document.getElementById("reason").value
+db.collection("notifications").add({
 
+userName: userName,
+leaveType: leaveType,
+message: userName + " applied for " + leaveType,
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+})
 if(!leaveType || !startDate || !endDate || !reason){
 alert("Please fill all fields")
 return
@@ -52,7 +63,10 @@ return
 
 try{
 
+// ===========================
 // GET LEAVE TYPE LIMIT
+// ===========================
+
 let leaveTypeSnapshot = await db.collection("leave_types")
 .where("name","==",leaveType)
 .get()
@@ -69,7 +83,10 @@ maxDays = Number(doc.data().max_days)
 })
 
 
+// ===========================
 // COUNT APPROVED LEAVES
+// ===========================
+
 let leavesSnapshot = await db.collection("leaves")
 .where("userId","==",user.uid)
 .where("leaveType","==",leaveType)
@@ -92,7 +109,10 @@ usedDays += diff
 })
 
 
-// CHECK LIMIT
+// ===========================
+// CALCULATE REQUEST DAYS
+// ===========================
+
 let start = new Date(startDate)
 let end = new Date(endDate)
 
@@ -106,7 +126,68 @@ return
 }
 
 
+// ===========================
+// CHECK MONTHLY LIMIT
+// ===========================
+
+let settingsDoc = await db.collection("leave_settings")
+.doc("cycle")
+.get()
+
+if(settingsDoc.exists){
+
+let settings = settingsDoc.data()
+
+if(settings.monthlyLimitEnabled){
+
+let month = start.getMonth()
+let year = start.getFullYear()
+
+let monthlyLeavesSnapshot = await db.collection("leaves")
+.where("userId","==",user.uid)
+.get()
+
+let monthlyDays = 0
+
+monthlyLeavesSnapshot.forEach(doc=>{
+
+let leave = doc.data()
+
+let leaveStart = new Date(leave.startDate)
+
+if(
+(leave.status === "approved" || leave.status === "pending") &&
+leaveStart.getMonth() == month &&
+leaveStart.getFullYear() == year
+){
+
+let s = new Date(leave.startDate)
+let e = new Date(leave.endDate)
+
+let diff = (e - s)/(1000*60*60*24)+1
+
+monthlyDays += diff
+
+}
+
+})
+
+if((monthlyDays + requestedDays) > settings.monthlyLimit){
+
+alert("Monthly leave limit exceeded")
+return
+
+}
+
+}
+
+}
+
+
+// ===========================
 // GET USER DATA
+// ===========================
+
 let userDoc = await db.collection("users").doc(user.uid).get()
 
 if(!userDoc.exists){
@@ -117,7 +198,14 @@ return
 let userData = userDoc.data()
 
 
+// ===========================
 // SAVE LEAVE REQUEST
+// ===========================
+
+// ===========================
+// SAVE LEAVE REQUEST
+// ===========================
+
 await db.collection("leaves").add({
 
 userId:user.uid,
@@ -131,6 +219,26 @@ status:"pending",
 createdAt: firebase.firestore.FieldValue.serverTimestamp()
 
 })
+
+
+// ===========================
+// CREATE ADMIN NOTIFICATION
+// ===========================
+
+await db.collection("notifications").add({
+
+type:"leave_request",
+title:"New Leave Request",
+message: userData.name + " applied for " + leaveType,
+userId:user.uid,
+read:false,
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+})
+
+alert("Leave request submitted")
+
+document.getElementById("leaveForm").reset()
 
 alert("Leave request submitted")
 

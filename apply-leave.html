@@ -9,41 +9,109 @@
 
 <style>
 
+/* PAGE */
+
 body{
-font-family:Arial;
-background:#f4f6f9;
 margin:0;
-padding:0;
+font-family:Arial, Helvetica, sans-serif;
+display:flex;
+background:#f4f6f9;
 }
 
-.container{
-width:400px;
-margin:60px auto;
+/* MOBILE HEADER */
+
+.mobile-header{
+display:none;
+background:#2d7ef7;
+color:white;
+padding:15px;
+align-items:center;
+}
+
+.menu-btn{
+font-size:22px;
+background:none;
+border:none;
+color:white;
+cursor:pointer;
+}
+
+.mobile-header h2{
+flex:1;
+text-align:center;
+margin:0;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:230px;
+background:#2d7ef7;
+height:100vh;
+color:white;
+padding:20px;
+}
+
+.sidebar h2{
+text-align:center;
+margin-bottom:30px;
+}
+
+.sidebar a{
+display:block;
+padding:12px;
+color:white;
+text-decoration:none;
+margin-bottom:10px;
+border-radius:6px;
+}
+
+.sidebar a:hover{
+background:rgba(255,255,255,0.2);
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+}
+
+/* FORM CARD */
+
+.form-card{
+max-width:500px;
 background:white;
 padding:30px;
-border-radius:6px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
+border-radius:10px;
+box-shadow:0 6px 12px rgba(0,0,0,0.08);
 }
 
-h2{
-text-align:center;
-margin-bottom:20px;
-}
+/* INPUTS */
 
 input,select,textarea{
 width:100%;
 padding:10px;
-margin:10px 0;
+margin-top:8px;
+margin-bottom:15px;
 border:1px solid #ccc;
-border-radius:4px;
+border-radius:6px;
 }
+
+textarea{
+resize:none;
+height:80px;
+}
+
+/* BUTTON */
 
 button{
 width:100%;
-padding:10px;
+padding:12px;
 background:#2d7ef7;
 color:white;
 border:none;
+border-radius:6px;
 cursor:pointer;
 font-size:16px;
 }
@@ -52,12 +120,34 @@ button:hover{
 background:#1b5edb;
 }
 
-.back{
-margin-top:15px;
-display:block;
-text-align:center;
-text-decoration:none;
-color:#2d7ef7;
+/* MOBILE */
+
+@media (max-width:768px){
+
+body{
+flex-direction:column;
+}
+
+.mobile-header{
+display:flex;
+}
+
+.sidebar{
+position:fixed;
+left:-240px;
+top:0;
+height:100%;
+transition:0.3s;
+}
+
+.sidebar.show{
+left:0;
+}
+
+.main{
+padding:20px;
+}
+
 }
 
 </style>
@@ -66,9 +156,37 @@ color:#2d7ef7;
 
 <body>
 
-<div class="container">
+<!-- MOBILE HEADER -->
 
-<h2>Apply Leave</h2>
+<div class="mobile-header">
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+<h2>Employee Panel</h2>
+
+</div>
+
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+
+<h2>Employee</h2>
+
+<a href="employee-dashboard.html">Dashboard</a>
+<a href="#">Apply Leave</a>
+<a href="leave-history.html">Leave History</a>
+
+</div>
+
+
+<!-- MAIN -->
+
+<div class="main">
+
+<h1>Apply Leave</h1>
+
+<div class="form-card">
 
 <form id="leaveForm">
 
@@ -78,10 +196,12 @@ color:#2d7ef7;
 
 
 <label>Start Date</label>
+
 <input type="date" id="startDate">
 
 
 <label>End Date</label>
+
 <input type="date" id="endDate">
 
 
@@ -98,18 +218,12 @@ Submit Leave Request
 
 </form>
 
-
-<a class="back" href="employee-dashboard.html">
-
-← Back to Dashboard
-
-</a>
+</div>
 
 </div>
 
 
-
-<!-- FIREBASE LIBRARIES -->
+<!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -117,6 +231,16 @@ Submit Leave Request
 
 <script src="js/firebase.js"></script>
 <script src="js/leave.js"></script>
+
+<script>
+
+function toggleMenu(){
+
+document.getElementById("sidebar").classList.toggle("show")
+
+}
+
+</script>
 
 </body>
 

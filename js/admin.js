@@ -14,9 +14,70 @@ const doc = await db.collection("users").doc(user.uid).get()
 if(!doc.exists || doc.data().role !== "admin"){
 alert("Access denied")
 window.location.href="login.html"
+return
+}
+
+// Run system functions
+autoResetLeaveCycle()
+loadStats()
+loadEmployees()
+loadLeaveRequests()
+loadLeaveBalance()
+loadNotifications()
+
+})
+
+
+
+// ===============================
+// AUTO RESET LEAVE CYCLE
+// ===============================
+
+async function autoResetLeaveCycle(){
+
+const settingsRef = db.collection("leave_settings").doc("cycle")
+const doc = await settingsRef.get()
+
+if(!doc.exists) return
+
+let data = doc.data()
+
+let startMonth = parseInt(data.startMonth)
+let lastResetYear = data.lastResetYear || 0
+
+let today = new Date()
+let currentMonth = today.getMonth()+1
+let currentYear = today.getFullYear()
+
+if(currentMonth === startMonth && lastResetYear !== currentYear){
+
+const users = await db.collection("users")
+.where("role","==","employee")
+.get()
+
+for(const user of users.docs){
+
+await db.collection("users").doc(user.id).update({
+
+leave_balance:{
+"Casual Leave":10,
+"Sick Leave":10,
+"Earned Leave":10
 }
 
 })
+
+}
+
+await settingsRef.update({
+lastResetYear: currentYear
+})
+
+alert("All employee leaves reset for new cycle")
+
+}
+
+}
 
 
 
@@ -26,7 +87,6 @@ window.location.href="login.html"
 
 function loadStats(){
 
-// total employees
 db.collection("users")
 .where("role","==","employee")
 .get()
@@ -34,16 +94,12 @@ db.collection("users")
 document.getElementById("totalEmployees").innerText = snapshot.size
 })
 
-
-// total leaves
 db.collection("leaves")
 .get()
 .then(snapshot=>{
 document.getElementById("totalLeaves").innerText = snapshot.size
 })
 
-
-// pending leaves
 db.collection("leaves")
 .where("status","==","pending")
 .get()
@@ -53,13 +109,13 @@ document.getElementById("pendingLeaves").innerText = snapshot.size
 
 }
 
-loadStats()
-
 
 
 // ===============================
 // LOAD EMPLOYEES
 // ===============================
+
+function loadEmployees(){
 
 const employeeTable = document.getElementById("employeeTable")
 
@@ -81,19 +137,9 @@ let row = `
 <td>${data.status}</td>
 
 <td>
-
-<button onclick="approveEmployee('${doc.id}')">
-Approve
-</button>
-
-<button onclick="rejectEmployee('${doc.id}')">
-Reject
-</button>
-
-<button onclick="resetLeave('${doc.id}')">
-Reset Leave
-</button>
-
+<button onclick="approveEmployee('${doc.id}')">Approve</button>
+<button onclick="rejectEmployee('${doc.id}')">Reject</button>
+<button onclick="resetLeave('${doc.id}')">Reset Leave</button>
 </td>
 
 </tr>
@@ -105,6 +151,8 @@ employeeTable.innerHTML += row
 
 })
 
+}
+
 
 
 // ===============================
@@ -114,11 +162,8 @@ employeeTable.innerHTML += row
 function approveEmployee(uid){
 
 db.collection("users").doc(uid).update({
-
 status:"approved"
-
 })
-
 .then(()=>{
 alert("Employee approved")
 })
@@ -134,16 +179,15 @@ alert("Employee approved")
 function rejectEmployee(uid){
 
 db.collection("users").doc(uid).update({
-
 status:"rejected"
-
 })
-
 .then(()=>{
 alert("Employee rejected")
 })
 
 }
+
+
 
 // ===============================
 // RESET LEAVE BALANCE
@@ -155,27 +199,28 @@ if(confirm("Reset leave balance for this employee?")){
 
 db.collection("users").doc(uid).update({
 
-leave_balance: {
-"Casual Leave": 10,
-"Sick Leave": 10,
-"Earned Leave": 10
+leave_balance:{
+"Casual Leave":10,
+"Sick Leave":10,
+"Earned Leave":10
 }
 
 })
 .then(()=>{
-
 alert("Leave balance reset successfully")
-
 })
 
 }
 
 }
+
 
 
 // ===============================
 // LOAD LEAVE REQUESTS
 // ===============================
+
+function loadLeaveRequests(){
 
 const leaveTable = document.getElementById("leaveRequests")
 
@@ -189,22 +234,25 @@ snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let action="";
+let action=""
 
-if(data.status=="pending"){
-action=`
+if(data.status==="pending"){
+
+action = `
 <button onclick="approveLeave('${doc.id}')">Approve</button>
 <button onclick="rejectLeave('${doc.id}')">Reject</button>
 <button onclick="deleteLeave('${doc.id}')">Delete</button>
-`;
+`
+
 }else{
-action=`
-<button onclick="deleteLeave('${doc.id}')">Delete</button>
-`;
+
+action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
+
 }
 
 let row = `
 <tr>
+
 <td>${data.name}</td>
 <td>${data.leaveType}</td>
 <td>${data.startDate}</td>
@@ -212,6 +260,7 @@ let row = `
 <td>${data.reason}</td>
 <td>${data.status}</td>
 <td>${action}</td>
+
 </tr>
 `
 
@@ -221,18 +270,83 @@ leaveTable.innerHTML += row
 
 })
 
+}
+
+
+
+// ===============================
+// APPROVE LEAVE
+// ===============================
+
+async function approveLeave(id){
+
+const doc = await db.collection("leaves").doc(id).get()
+
+let data = doc.data()
+
+let uid = data.userId
+let type = data.leaveType
+
+let field = `leave_balance.${type}`
+
+await db.collection("users").doc(uid).update({
+[field]: firebase.firestore.FieldValue.increment(-1)
+})
+
+await db.collection("leaves").doc(id).update({
+status:"approved"
+})
+
+}
+
+
+
+// ===============================
+// REJECT LEAVE
+// ===============================
+
+function rejectLeave(id){
+
+db.collection("leaves").doc(id).update({
+status:"rejected"
+})
+
+}
+
+
+
+// ===============================
+// DELETE LEAVE
+// ===============================
+
+function deleteLeave(id){
+
+if(confirm("Delete this leave request?")){
+
+db.collection("leaves").doc(id).delete()
+
+}
+
+}
+
+
+
+// ===============================
+// LOAD LEAVE BALANCE TABLE
+// ===============================
+
 async function loadLeaveBalance(){
 
 const header = document.getElementById("leaveHeader")
 const table = document.getElementById("leaveBalanceTable")
 
-// load leave types
+header.innerHTML=`<th>Employee</th><th>Email</th>`
+
 const leaveTypesSnapshot = await db.collection("leave_types").get()
 
 let leaveTypes=[]
 
 leaveTypesSnapshot.forEach(doc=>{
-
 let data = doc.data()
 
 leaveTypes.push({
@@ -241,11 +355,8 @@ max:parseInt(data.max_days)
 })
 
 header.innerHTML += `<th>${data.name}</th>`
-
 })
 
-
-// load employees
 const usersSnapshot = await db.collection("users")
 .where("role","==","employee")
 .get()
@@ -254,11 +365,10 @@ table.innerHTML=""
 
 for(const userDoc of usersSnapshot.docs){
 
-let user=userDoc.data()
-let uid=userDoc.id
+let user = userDoc.data()
+let uid = userDoc.id
 
-let row=`
-<tr>
+let row=`<tr>
 <td>${user.name}</td>
 <td>${user.email}</td>
 `
@@ -285,72 +395,124 @@ table.innerHTML += row
 
 }
 
-loadLeaveBalance()
+
 
 // ===============================
-// APPROVE LEAVE
+// LOAD NOTIFICATIONS
 // ===============================
-function approveLeave(id){
 
-db.collection("leaves").doc(id).get().then(doc=>{
+function loadNotifications(){
+
+const container = document.getElementById("notificationList")
+if(!container) return
+
+db.collection("notifications")
+.orderBy("createdAt","desc")
+.onSnapshot(snapshot=>{
+
+container.innerHTML=""
+
+snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let uid = data.userId
-let type = data.leaveType
+if(data.hidden === true) return
 
-let field = `leave_balance.${type}`
+let time=""
+if(data.createdAt){
+time = new Date(data.createdAt.seconds * 1000).toLocaleString()
+}
 
-db.collection("users").doc(uid).update({
+let div=document.createElement("div")
+div.className="notification"
 
-[field]: firebase.firestore.FieldValue.increment(-1)
+div.innerHTML=`
+${data.message}
+<div class="notification-time">${time}</div>
+<button onclick="hideNotification('${doc.id}')">Hide</button>
+<button onclick="deleteNotification('${doc.id}')">Delete</button>
+`
+
+container.appendChild(div)
 
 })
-
-})
-
-db.collection("leaves").doc(id).update({
-
-status:"approved"
 
 })
 
 }
 
+function hideNotification(id){
 
-
-// ===============================
-// REJECT LEAVE
-// ===============================
-
-function rejectLeave(id){
-
-db.collection("leaves").doc(id).update({
-
-status:"rejected"
-
-})
-
-.then(()=>{
-alert("Leave rejected")
+db.collection("notifications").doc(id).update({
+hidden:true
 })
 
 }
 
-// ===============================
-// DELETE LEAVE
-// ===============================
+function loadHiddenNotifications(){
 
-function deleteLeave(id){
+const container = document.getElementById("hiddenNotifications")
 
-if(confirm("Delete this leave request?")){
+if(!container) return
 
-db.collection("leaves").doc(id).delete()
-.then(()=>{
+// TOGGLE
+if(container.style.display === "block"){
+container.style.display = "none"
+return
+}
 
-alert("Leave request deleted")
+container.style.display = "block"
+
+db.collection("notifications")
+.where("hidden","==",true)
+.get()
+.then(snapshot=>{
+
+container.innerHTML=""
+
+snapshot.forEach(doc=>{
+
+let data = doc.data()
+
+let time=""
+if(data.createdAt){
+time = new Date(data.createdAt.seconds * 1000).toLocaleString()
+}
+
+let div=document.createElement("div")
+div.className="notification"
+
+div.innerHTML=`
+${data.message}
+<div class="notification-time">${time}</div>
+<button onclick="unhideNotification('${doc.id}')">Unhide</button>
+<button onclick="deleteNotification('${doc.id}')">Delete</button>
+`
+
+container.appendChild(div)
 
 })
+
+})
+
+}
+function unhideNotification(id){
+
+db.collection("notifications").doc(id).update({
+hidden:false
+})
+
+}
+// ===============================
+// LOGOUT
+// ===============================
+function deleteNotification(id){
+
+if(confirm("Delete this notification?")){
+
+db.collection("notifications")
+.doc(id)
+.delete()
 .catch(error=>{
 console.log(error)
 })
@@ -359,16 +521,10 @@ console.log(error)
 
 }
 
-// ===============================
-// LOGOUT
-// ===============================
-
 function logout(){
 
 auth.signOut().then(()=>{
-
 window.location.href="login.html"
-
 })
 
 }
