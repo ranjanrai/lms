@@ -1,62 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 
-<title>Login - Leave Management System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="css/style.css">
+<title>Login - Leave Management System</title>
 
 <style>
 
-body{
-font-family:Arial;
-background:#f4f6f9;
+*{
 margin:0;
 padding:0;
+box-sizing:border-box;
+font-family:Arial, Helvetica, sans-serif;
 }
+
+body{
+height:100vh;
+background:linear-gradient(135deg,#2d7ef7,#00c6ff);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* Container */
 
 .container{
-width:350px;
-margin:100px auto;
+width:100%;
+max-width:420px;
 background:white;
-padding:30px;
-border-radius:6px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
-text-align:center;
+padding:40px;
+border-radius:10px;
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
+/* Title */
+
 h2{
-margin-bottom:20px;
+text-align:center;
+margin-bottom:25px;
+color:#333;
 }
+
+/* Inputs */
 
 input{
 width:100%;
-padding:10px;
+padding:12px;
 margin:10px 0;
 border:1px solid #ccc;
-border-radius:4px;
+border-radius:5px;
+font-size:14px;
+transition:0.3s;
 }
+
+input:focus{
+border-color:#2d7ef7;
+outline:none;
+}
+
+/* Button */
 
 button{
 width:100%;
-padding:10px;
+padding:12px;
+margin-top:10px;
 background:#2d7ef7;
 color:white;
 border:none;
-cursor:pointer;
+border-radius:5px;
 font-size:16px;
+cursor:pointer;
+transition:0.3s;
 }
 
 button:hover{
 background:#1b5edb;
 }
 
+/* Register link */
+
 .register{
-margin-top:15px;
 display:block;
+margin-top:20px;
+text-align:center;
 text-decoration:none;
 color:#2d7ef7;
+font-size:14px;
+}
+
+.register:hover{
+text-decoration:underline;
+}
+
+/* Mobile */
+
+@media (max-width:500px){
+
+.container{
+margin:20px;
+padding:25px;
+}
+
 }
 
 </style>
@@ -67,7 +114,7 @@ color:#2d7ef7;
 
 <div class="container">
 
-<h2>Login</h2>
+<h2>User Login</h2>
 
 <input type="email" id="email" placeholder="Enter Email">
 
@@ -75,23 +122,20 @@ color:#2d7ef7;
 
 <button onclick="login()">Login</button>
 
-<a class="register" href="register.html">
-
-Create new account
-
+<a class="register" href="index.html">
+Create New Account
 </a>
 
 </div>
 
 
-<!-- FIREBASE LIBRARIES -->
+<!-- Firebase Libraries -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 
 <script src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
