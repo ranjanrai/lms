@@ -1,260 +1,117 @@
+﻿<!DOCTYPE html>
 
-<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 
-<title>Employee Approval</title>
+<title>Leave Requests</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="css/style.css">
-
-<style>
-
-body{
-font-family:Arial;
-margin:0;
-display:flex;
-}
-
-/* SIDEBAR */
-
-.sidebar{
-width:220px;
-background:#2d7ef7;
-height:100vh;
-color:white;
-padding:20px;
-}
-
-.sidebar h2{
-text-align:center;
-}
-
-.sidebar a{
-display:block;
-color:white;
-padding:10px;
-text-decoration:none;
-margin-top:10px;
-}
-
-.sidebar a:hover{
-background:#1b5edb;
-}
-
-/* MAIN */
-
-.main{
-flex:1;
-padding:20px;
-background:#f4f6f9;
-}
-
-/* TABLE */
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-}
-
-th,td{
-padding:10px;
-border:1px solid #ddd;
-text-align:center;
-}
-
-th{
-background:#f0f0f0;
-}
-
-button{
-padding:6px 10px;
-border:none;
-cursor:pointer;
-color:white;
-}
-
-.approve{
-background:green;
-}
-
-.reject{
-background:red;
-}
-
-.logout{
-background:#e74c3c;
-margin-top:20px;
-width:100%;
-}
-
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
 <body>
 
-
-<!-- MOBILE HEADER -->
-<div class="mobile-header">
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<h2 class="mobile-title">Leave System</h2>
-
-</div>
-
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
-<h2>Admin Panel</h2>
+<h2>LMS Admin</h2>
 
-<a href="admin-dashboard.html">Dashboard</a>
-<a href="admin-leave-requests.html">Leave Requests</a>
-<a href="admin-employee-approval.html">Employee Approval</a>
-<a href="leave-types.html">Leave type</a>
-<a href="leave-settings.html">Leave Settings</a>
-<a href="holidays.html">Holidays</a>
-<a href="index.html">Logout</a>
+<a href="admin-dashboard.html" class="menu">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="admin-leave-requests.html" class="menu active">
+<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
+</a>
+
+<a href="admin-employee-approval.html" class="menu">
+<i class="fas fa-user-check"></i> <span>Employee Approval</span>
+</a>
+
+<a href="leave-types.html" class="menu">
+<i class="fas fa-list"></i> <span>Leave Types</span>
+</a>
+
+<a href="leave-settings.html" class="menu">
+<i class="fas fa-cog"></i> <span>Settings</span>
+</a>
+
+<a href="holidays.html" class="menu">
+<i class="fas fa-calendar"></i> <span>Holidays</span>
+</a>
+
+<a href="index.html" class="menu">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
 
 </div>
-
-
 
 <!-- MAIN -->
 
 <div class="main">
 
-<h1>Employee Approval</h1>
+<!-- HEADER -->
 
-<h3>Pending Employee Registrations</h3>
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
+<h2>Leave Requests</h2>
+</div>
+
+<!-- CARD WRAPPER -->
+
+<div class="card fade-in">
 
 <table>
-
 <thead>
 <tr>
-<th>Name</th>
+<th>Employee</th>
 <th>Email</th>
+<th>Leave Type</th>
+<th>Start</th>
+<th>End</th>
+<th>Reason</th>
 <th>Status</th>
 <th>Action</th>
 </tr>
 </thead>
 
-<tbody id="employeeTable"></tbody>
-
+<tbody id="leaveRequests"></tbody>
 </table>
 
 </div>
 
+</div>
 
+<!-- FIREBASE -->
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
 
+<script src="js/admin.js"></script>
+
 <script>
+function toggleSidebar(){
 
-// check admin login
-auth.onAuthStateChanged(async function(user){
+const sidebar=document.getElementById("sidebar")
 
-if(!user){
-window.location.href="login.html";
-return;
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
 }
 
-const doc = await db.collection("users").doc(user.uid).get();
-
-if(!doc.exists || doc.data().role !== "admin"){
-alert("Access denied");
-window.location.href="login.html";
 }
-
-});
-
-
-// load pending employees
-const tableBody = document.getElementById("employeeTable");
-
-db.collection("users")
-.where("status","==","pending")
-.onSnapshot(snapshot=>{
-
-tableBody.innerHTML="";
-
-snapshot.forEach(doc=>{
-
-const data = doc.data();
-
-const row = `
-<tr>
-<td>${data.name}</td>
-<td>${data.email}</td>
-<td>${data.status}</td>
-
-<td>
-<button class="approve" onclick="approveUser('${doc.id}')">Approve</button>
-<button class="reject" onclick="rejectUser('${doc.id}')">Reject</button>
-</td>
-
-</tr>
-`;
-
-tableBody.innerHTML += row;
-
-});
-
-});
-
-
-// approve employee
-function approveUser(uid){
-
-db.collection("users").doc(uid).update({
-status:"approved"
-}).then(()=>{
-
-alert("Employee approved");
-
-});
-
-}
-
-
-// reject employee
-function rejectUser(uid){
-
-db.collection("users").doc(uid).update({
-status:"rejected"
-}).then(()=>{
-
-alert("Employee rejected");
-
-});
-
-}
-
-
-// logout
-function logout(){
-
-auth.signOut().then(()=>{
-window.location.href="login.html";
-});
-
-}
-function toggleMenu(){
-
-let sidebar = document.getElementById("sidebar")
-
-sidebar.classList.toggle("show")
-
-}
-
 </script>
 
 </body>
 </html>
-

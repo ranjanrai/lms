@@ -1,207 +1,44 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
 
+<html lang="en">
 <head>
 
 <title>Leave History</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MAIN CSS -->
+
 <link rel="stylesheet" href="css/style.css">
 
-<style>
+<!-- ICONS -->
 
-/* PAGE */
-
-body{
-margin:0;
-font-family:Arial, Helvetica, sans-serif;
-display:flex;
-background:#f4f6f9;
-}
-
-/* MOBILE HEADER */
-
-.mobile-header{
-display:none;
-background:#2d7ef7;
-color:white;
-padding:15px;
-align-items:center;
-}
-
-.menu-btn{
-font-size:22px;
-background:none;
-border:none;
-color:white;
-cursor:pointer;
-}
-
-.mobile-header h2{
-flex:1;
-text-align:center;
-margin:0;
-}
-
-/* SIDEBAR */
-
-.sidebar{
-width:230px;
-background:#2d7ef7;
-height:100vh;
-color:white;
-padding:20px;
-}
-
-.sidebar h2{
-text-align:center;
-margin-bottom:30px;
-}
-
-.sidebar a{
-display:block;
-padding:12px;
-color:white;
-text-decoration:none;
-margin-bottom:10px;
-border-radius:6px;
-}
-
-.sidebar a:hover{
-background:rgba(255,255,255,0.2);
-}
-
-/* MAIN */
-
-.main{
-flex:1;
-padding:30px;
-}
-
-/* TABLE CARD */
-
-.table-card{
-background:white;
-padding:25px;
-border-radius:10px;
-box-shadow:0 6px 12px rgba(0,0,0,0.08);
-}
-
-/* TABLE */
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px;
-}
-
-th,td{
-padding:12px;
-text-align:center;
-border-bottom:1px solid #eee;
-}
-
-th{
-background:#f4f4f4;
-}
-
-/* BUTTON */
-
-button{
-padding:6px 10px;
-background:#ff4d4d;
-color:white;
-border:none;
-border-radius:4px;
-cursor:pointer;
-}
-
-button:hover{
-background:#cc0000;
-}
-
-/* STATUS COLORS */
-
-.status-pending{
-color:orange;
-font-weight:bold;
-}
-
-.status-approved{
-color:green;
-font-weight:bold;
-}
-
-.status-rejected{
-color:red;
-font-weight:bold;
-}
-
-.status-cancelled{
-color:gray;
-font-weight:bold;
-}
-
-/* MOBILE */
-
-@media (max-width:768px){
-
-body{
-flex-direction:column;
-}
-
-.mobile-header{
-display:flex;
-}
-
-.sidebar{
-position:fixed;
-left:-240px;
-top:0;
-height:100%;
-transition:0.3s;
-}
-
-.sidebar.show{
-left:0;
-}
-
-.main{
-padding:20px;
-}
-
-table{
-display:block;
-overflow-x:auto;
-white-space:nowrap;
-}
-
-}
-
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
 <body>
 
-<!-- MOBILE HEADER -->
-
-<div class="mobile-header">
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<h2>Employee Panel</h2>
-
-</div>
-
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
-<h2>Employee</h2>
+<h2>Employee Panel</h2>
 
-<a href="employee-dashboard.html">Dashboard</a>
-<a href="apply-leave.html">Apply Leave</a>
-<a href="#">Leave History</a>
+<a href="employee-dashboard.html" class="menu">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="apply-leave.html" class="menu">
+<i class="fas fa-paper-plane"></i> <span>Apply Leave</span>
+</a>
+
+<a href="leave-history.html" class="menu active">
+<i class="fas fa-history"></i> <span>Leave History</span>
+</a>
+
+<a href="#" class="menu" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
 
 </div>
 
@@ -209,14 +46,21 @@ white-space:nowrap;
 
 <div class="main">
 
-<h1>Leave History</h1>
+<!-- HEADER -->
 
-<div class="table-card">
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
+<h2>Leave History</h2>
+</div>
+
+<!-- TABLE CARD -->
+
+<div class="card fade-in">
 
 <table>
-
 <thead>
-
 <tr>
 <th>Leave Type</th>
 <th>Start Date</th>
@@ -226,11 +70,9 @@ white-space:nowrap;
 <th>Status</th>
 <th>Action</th>
 </tr>
-
 </thead>
 
 <tbody id="leaveTable"></tbody>
-
 </table>
 
 </div>
@@ -240,16 +82,28 @@ white-space:nowrap;
 <!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
+
 <script src="js/leave-history.js"></script>
 
 <script>
 
-function toggleMenu(){
-document.getElementById("sidebar").classList.toggle("show")
+// SIDEBAR TOGGLE (MODERN)
+function toggleSidebar(){
+
+const sidebar=document.getElementById("sidebar")
+
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
+}
+
 }
 
 </script>

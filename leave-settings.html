@@ -1,133 +1,79 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
 
+<html lang="en">
 <head>
 
 <title>Leave Settings</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MAIN CSS -->
+
 <link rel="stylesheet" href="css/style.css">
 
-<style>
+<!-- ICONS -->
 
-body{
-font-family:Arial;
-margin:0;
-display:flex;
-}
-
-/* SIDEBAR */
-
-.sidebar{
-width:220px;
-background:#2d7ef7;
-height:100vh;
-color:white;
-padding:20px;
-}
-
-.sidebar h2{
-text-align:center;
-}
-
-.sidebar a{
-display:block;
-color:white;
-padding:10px;
-text-decoration:none;
-margin-top:10px;
-}
-
-.sidebar a:hover{
-background:#1b5edb;
-}
-
-/* MAIN */
-
-.main{
-flex:1;
-padding:20px;
-}
-
-/* SETTINGS BOX */
-
-.settings-box{
-background:#f4f4f4;
-padding:30px;
-border-radius:6px;
-width:400px;
-}
-
-label{
-display:block;
-margin-top:15px;
-font-weight:bold;
-}
-
-select,input{
-width:100%;
-padding:8px;
-margin-top:5px;
-border:1px solid #ccc;
-border-radius:4px;
-}
-
-button{
-margin-top:20px;
-padding:10px 15px;
-border:none;
-background:#2d7ef7;
-color:white;
-cursor:pointer;
-}
-
-button:hover{
-background:#1b5edb;
-}
-
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
 <body>
 
-<!-- MOBILE HEADER -->
-<div class="mobile-header">
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<h2 class="mobile-title">Leave System</h2>
-
-</div>
-
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
-<h2>Admin Panel</h2>
+<h2>LMS Admin</h2>
 
-<a href="admin-dashboard.html">Dashboard</a>
-<a href="admin-leave-requests.html">Leave Requests</a>
-<a href="admin-employee-approval.html">Employee Approval</a>
-<a href="leave-types.html">Leave type</a>
-<a href="leave-settings.html">Leave Settings</a>
-<a href="holidays.html">Holidays</a>
-<a href="index.html">Logout</a>
+<a href="admin-dashboard.html" class="menu">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="admin-leave-requests.html" class="menu">
+<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
+</a>
+
+<a href="admin-employee-approval.html" class="menu">
+<i class="fas fa-user-check"></i> <span>Employee Approval</span>
+</a>
+
+<a href="leave-types.html" class="menu">
+<i class="fas fa-list"></i> <span>Leave Types</span>
+</a>
+
+<a href="leave-settings.html" class="menu active">
+<i class="fas fa-cog"></i> <span>Settings</span>
+</a>
+
+<a href="holidays.html" class="menu">
+<i class="fas fa-calendar"></i> <span>Holidays</span>
+</a>
+
+<a href="index.html" class="menu">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
 
 </div>
 
-
-
-<!-- MAIN CONTENT -->
+<!-- MAIN -->
 
 <div class="main">
 
-<h1>Leave Cycle Settings</h1>
+<!-- HEADER -->
 
-<div class="settings-box">
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
+<h2>Leave Settings</h2>
+</div>
 
-<h2 style="margin-top:40px;">Current Leave Cycle</h2>
+<!-- CURRENT SETTINGS -->
 
-<table border="1" style="width:100%;margin-top:10px;background:white;">
+<div class="card fade-in">
+
+<h3>Current Leave Cycle</h3>
+
+<table>
 <thead>
 <tr>
 <th>Start Month</th>
@@ -135,7 +81,7 @@ background:#1b5edb;
 <th>End Month</th>
 <th>End Year</th>
 <th>Monthly Limit</th>
-<th>Monthly Limit Enabled</th>
+<th>Limit Enabled</th>
 </tr>
 </thead>
 
@@ -144,11 +90,18 @@ background:#1b5edb;
 <td colspan="6" style="text-align:center;">No settings found</td>
 </tr>
 </tbody>
-
 </table>
-<label>Start Month</label>
 
-<select id="startMonth">
+</div>
+
+<!-- FORM -->
+
+<div class="card fade-in" style="margin-top:20px;">
+
+<h3>Update Leave Settings</h3>
+
+<label>Start Month</label> <select id="startMonth">
+
 <option value="1">January</option>
 <option value="2">February</option>
 <option value="3">March</option>
@@ -163,14 +116,10 @@ background:#1b5edb;
 <option value="12">December</option>
 </select>
 
+<label>Start Year</label> <input type="number" id="startYear">
 
-<label>Start Year</label>
-<input type="number" id="startYear">
+<label>End Month</label> <select id="endMonth">
 
-
-<label>End Month</label>
-
-<select id="endMonth">
 <option value="1">January</option>
 <option value="2">February</option>
 <option value="3">March</option>
@@ -185,57 +134,61 @@ background:#1b5edb;
 <option value="12">December</option>
 </select>
 
+<label>End Year</label> <input type="number" id="endYear">
 
-<label>End Year</label>
-<input type="number" id="endYear">
+<label>Monthly Leave Limit</label> <input type="number" id="monthlyLimit">
 
-<label>Monthly Leave Limit</label>
-<input type="number" id="monthlyLimit" placeholder="Example: 2">
+<label>Enable Monthly Limit</label> <select id="monthlyLimitEnabled">
 
-<label>Enable Monthly Limit</label>
-
-<select id="monthlyLimitEnabled">
 <option value="true">Enable</option>
 <option value="false">Disable</option>
 </select>
 
 <button onclick="saveLeaveSettings()">Save Settings</button>
+
 <div id="successMsg" style="
 display:none;
 margin-top:15px;
 padding:10px;
 background:#d4edda;
 color:#155724;
-border:1px solid #c3e6cb;
-border-radius:4px;
+border-radius:8px;
 ">
 Settings saved successfully
 </div>
-</div>
 
 </div>
 
-
+</div>
 
 <!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
+
 <script src="js/leave-settings.js"></script>
+
 <script>
 
-function toggleMenu(){
+// SIDEBAR TOGGLE (FIXED)
+function toggleSidebar(){
 
-let sidebar = document.getElementById("sidebar")
+const sidebar=document.getElementById("sidebar")
 
-sidebar.classList.toggle("show")
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
+}
 
 }
 
 </script>
-</body>
 
+</body>
 </html>

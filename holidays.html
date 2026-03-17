@@ -1,194 +1,171 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
 
+<html lang="en">
 <head>
 
 <title>Holiday Management</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MAIN CSS -->
+
 <link rel="stylesheet" href="css/style.css">
 
-<style>
+<!-- ICONS -->
 
-body{
-font-family:Arial;
-background:#f4f6f9;
-margin:0;
-padding:0;
-}
-
-.container{
-width:700px;
-margin:40px auto;
-background:white;
-padding:30px;
-border-radius:6px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-
-h2{
-text-align:center;
-margin-bottom:20px;
-}
-
-input,textarea{
-width:100%;
-padding:10px;
-margin:10px 0;
-border:1px solid #ccc;
-border-radius:4px;
-}
-
-button{
-padding:10px 20px;
-background:#2d7ef7;
-color:white;
-border:none;
-cursor:pointer;
-}
-
-button:hover{
-background:#1b5edb;
-}
-
-table{
-width:100%;
-margin-top:20px;
-border-collapse:collapse;
-}
-
-th,td{
-padding:10px;
-border:1px solid #ddd;
-text-align:center;
-}
-
-th{
-background:#f0f0f0;
-}
-
-.back{
-margin-top:20px;
-display:block;
-text-align:center;
-text-decoration:none;
-color:#2d7ef7;
-}
-
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
 <body>
-<!-- SIDEBAR -->
-
-<!-- MOBILE HEADER -->
-<div class="mobile-header">
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<h2 class="mobile-title">Leave System</h2>
-
-</div>
 
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
-<h2>Admin Panel</h2>
+<h2>LMS Admin</h2>
 
-<a href="admin-dashboard.html">Dashboard</a>
-<a href="admin-leave-requests.html">Leave Requests</a>
-<a href="admin-employee-approval.html">Employee Approval</a>
-<a href="leave-types.html">Leave type</a>
-<a href="holidays.html">Holidays</a>
-<a href="index.html">Logout</a>
+<a href="admin-dashboard.html" class="menu">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="admin-leave-requests.html" class="menu">
+<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
+</a>
+
+<a href="admin-employee-approval.html" class="menu">
+<i class="fas fa-user-check"></i> <span>Employee Approval</span>
+</a>
+
+<a href="leave-types.html" class="menu">
+<i class="fas fa-list"></i> <span>Leave Types</span>
+</a>
+
+<a href="leave-settings.html" class="menu">
+<i class="fas fa-cog"></i> <span>Settings</span>
+</a>
+
+<a href="holidays.html" class="menu active">
+<i class="fas fa-calendar"></i> <span>Holidays</span>
+</a>
+
+<a href="index.html" class="menu">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
 
 </div>
-<div class="container">
 
+<!-- MAIN -->
+
+<div class="main">
+
+<!-- HEADER -->
+
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
 <h2>Holiday Management</h2>
+</div>
 
 <!-- ADD HOLIDAY -->
 
+<div class="card fade-in">
+
 <h3>Add Holiday</h3>
+
+<div class="form-row">
 
 <input type="text" id="holidayName" placeholder="Holiday Name">
 
 <input type="date" id="holidayDate">
 
+</div>
+
 <textarea id="holidayDescription" placeholder="Description"></textarea>
 
-<button onclick="addHoliday()">Add Holiday</button>
+<button class="btn-primary" onclick="addHoliday()">
+<i class="fas fa-plus"></i> Add Holiday
+</button>
 
+</div>
 
-<!-- HOLIDAY TABLE -->
+<!-- HOLIDAY LIST -->
 
-<h3>Holiday List</h3>
+<div class="card fade-in" style="margin-top:20px;">
+
+<h3 style="margin-bottom:10px;">Holiday List</h3>
 
 <table>
-
 <thead>
-
 <tr>
 <th>Name</th>
 <th>Date</th>
 <th>Description</th>
 <th>Action</th>
 </tr>
-
 </thead>
 
 <tbody id="holidayTable"></tbody>
-
 </table>
-
-<a class="back" href="admin-dashboard.html">
-← Back to Dashboard
-</a>
 
 </div>
 
+</div>
 
 <!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
 
-
 <script>
 
-// ADD HOLIDAY
+// =======================
+// SIDEBAR TOGGLE
+// =======================
+function toggleSidebar(){
 
+const sidebar=document.getElementById("sidebar")
+
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
+}
+
+}
+
+// =======================
+// ADD HOLIDAY
+// =======================
 function addHoliday(){
 
-let name = document.getElementById("holidayName").value
-let date = document.getElementById("holidayDate").value
-let description = document.getElementById("holidayDescription").value
+let name=document.getElementById("holidayName").value
+let date=document.getElementById("holidayDate").value
+let description=document.getElementById("holidayDescription").value
+
+if(name=="" || date==""){
+alert("Please fill required fields")
+return
+}
 
 db.collection("holidays").add({
-
 holiday_name:name,
 holiday_date:date,
 description:description
-
-})
-
-.then(()=>{
-
+}).then(()=>{
 alert("Holiday Added")
-
-loadHolidays()
-
 })
 
 }
 
-
+// =======================
 // LOAD HOLIDAYS
-
+// =======================
 function loadHolidays(){
 
 db.collection("holidays")
@@ -201,16 +178,16 @@ snapshot.forEach(doc=>{
 
 let d=doc.data()
 
-html += `
-<tr>
+html+=`
+<tr class="fade-in">
 
 <td>${d.holiday_name}</td>
 <td>${d.holiday_date}</td>
 <td>${d.description}</td>
 
 <td>
-<button onclick="deleteHoliday('${doc.id}')">
-Delete
+<button class="btn-reject" onclick="deleteHoliday('${doc.id}')">
+<i class="fas fa-trash"></i>
 </button>
 </td>
 
@@ -225,31 +202,21 @@ document.getElementById("holidayTable").innerHTML=html
 
 }
 
-
-// DELETE HOLIDAY
-
+// =======================
+// DELETE
+// =======================
 function deleteHoliday(id){
 
-db.collection("holidays")
-.doc(id)
-.delete()
-
+if(confirm("Delete this holiday?")){
+db.collection("holidays").doc(id).delete()
 }
 
+}
 
 // AUTO LOAD
-
 loadHolidays()
 
-function toggleMenu(){
-
-let sidebar = document.getElementById("sidebar")
-
-sidebar.classList.toggle("show")
-
-}
 </script>
 
 </body>
-
 </html>

@@ -1,4 +1,4 @@
-// ===============================
+﻿// ===============================
 // CHECK ADMIN LOGIN
 // ===============================
 
@@ -404,6 +404,8 @@ table.innerHTML += row
 function loadNotifications(){
 
 const container = document.getElementById("notificationList")
+const countElement = document.getElementById("notifCount")
+
 if(!container) return
 
 db.collection("notifications")
@@ -412,31 +414,70 @@ db.collection("notifications")
 
 container.innerHTML=""
 
+let unreadCount = 0
+
 snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-if(data.hidden === true) return
+// ✅ FIX: handle old data safely
+let hidden = data.hidden || false
+let read = data.read || false
 
+if(hidden === true) return
+
+if(!read) unreadCount++
+
+// Time
 let time=""
 if(data.createdAt){
 time = new Date(data.createdAt.seconds * 1000).toLocaleString()
 }
 
+// UI
 let div=document.createElement("div")
-div.className="notification"
+div.className = "notification " + (read ? "" : "unread")
 
 div.innerHTML=`
-${data.message}
+<strong>${data.message || "No message"}</strong>
 <div class="notification-time">${time}</div>
-<button onclick="hideNotification('${doc.id}')">Hide</button>
-<button onclick="deleteNotification('${doc.id}')">Delete</button>
+
+<button onclick="markNotificationRead('${doc.id}')">✔</button>
+<button onclick="deleteNotification('${doc.id}')">🗑</button>
 `
 
 container.appendChild(div)
 
 })
 
+// Update count
+countElement.innerText = unreadCount
+
+})
+
+}
+function toggleNotifPanel(){
+const panel = document.getElementById("notifPanel")
+panel.style.display = panel.style.display === "block" ? "none" : "block"
+}
+
+function markNotificationRead(id){
+db.collection("notifications").doc(id).update({
+read:true
+})
+}
+window.addEventListener("click", function(e){
+const panel = document.getElementById("notifPanel")
+const bell = document.querySelector(".notif-bell")
+
+if(!panel.contains(e.target) && !bell.contains(e.target)){
+panel.style.display = "none"
+}
+})
+function markNotificationRead(id){
+
+db.collection("notifications").doc(id).update({
+read:true
 })
 
 }

@@ -1,226 +1,75 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
 
+<html lang="en">
 <head>
 
 <title>Employee Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MAIN CSS -->
+
 <link rel="stylesheet" href="css/style.css">
 
-<style>
+<!-- ICONS -->
 
-/* GLOBAL */
-
-body{
-margin:0;
-font-family:Arial;
-display:flex;
-background:#f4f6f9;
-}
-
-/* MOBILE HEADER */
-
-.mobile-header{
-display:none;
-background:#2d7ef7;
-color:white;
-padding:15px;
-align-items:center;
-}
-
-.menu-btn{
-font-size:22px;
-background:none;
-border:none;
-color:white;
-cursor:pointer;
-}
-
-.mobile-header h2{
-flex:1;
-text-align:center;
-margin:0;
-}
-
-/* SIDEBAR */
-
-.sidebar{
-width:230px;
-background:#2d7ef7;
-height:100vh;
-color:white;
-padding:20px;
-transition:0.3s;
-}
-
-.sidebar h2{
-text-align:center;
-margin-bottom:30px;
-}
-
-.sidebar a{
-display:block;
-padding:12px;
-color:white;
-text-decoration:none;
-margin-bottom:10px;
-border-radius:6px;
-}
-
-.sidebar a:hover{
-background:rgba(255,255,255,0.2);
-}
-
-.sidebar button{
-margin-top:20px;
-padding:12px;
-width:100%;
-border:none;
-background:white;
-color:#2d7ef7;
-cursor:pointer;
-border-radius:6px;
-font-weight:bold;
-}
-
-/* MAIN */
-
-.main{
-flex:1;
-padding:30px;
-}
-
-/* CARDS */
-
-.cards{
-display:flex;
-gap:20px;
-flex-wrap:wrap;
-margin-bottom:30px;
-}
-
-.card{
-background:white;
-padding:25px;
-flex:1;
-min-width:200px;
-border-radius:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.08);
-text-align:center;
-}
-
-/* TABLE */
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-border-radius:8px;
-overflow:hidden;
-margin-top:15px;
-}
-
-th,td{
-padding:12px;
-border-bottom:1px solid #eee;
-text-align:center;
-}
-
-th{
-background:#f4f4f4;
-}
-
-/* MOBILE */
-
-@media (max-width:768px){
-
-body{
-flex-direction:column;
-}
-
-.mobile-header{
-display:flex;
-}
-
-.sidebar{
-position:fixed;
-left:-240px;
-top:0;
-height:100%;
-z-index:1000;
-}
-
-.sidebar.show{
-left:0;
-}
-
-.main{
-padding:20px;
-}
-
-.cards{
-flex-direction:column;
-}
-
-table{
-display:block;
-overflow-x:auto;
-white-space:nowrap;
-}
-
-}
-
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
 
 <body>
 
-<!-- MOBILE HEADER -->
-
-<div class="mobile-header">
-
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-<h2>Employee Panel</h2>
-
-</div>
-
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
 
-<h2>Employee</h2>
+<h2>Employee Panel</h2>
 
-<a href="#">Dashboard</a>
-<a href="apply-leave.html">Apply Leave</a>
-<a href="leave-history.html">Leave History</a>
+<a href="employee-dashboard.html" class="menu active">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
 
-<button onclick="logout()">Logout</button>
+<a href="apply-leave.html" class="menu">
+<i class="fas fa-paper-plane"></i> <span>Apply Leave</span>
+</a>
+
+<a href="leave-history.html" class="menu">
+<i class="fas fa-history"></i> <span>Leave History</span>
+</a>
+
+<a href="#" class="menu" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
 
 </div>
 
-<!-- MAIN CONTENT -->
+<!-- MAIN -->
 
 <div class="main">
 
-<h1>Employee Dashboard</h1>
+<!-- HEADER -->
 
-<!-- DASHBOARD CARDS -->
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
+<h2>Employee Dashboard</h2>
+</div>
+
+<!-- CARDS -->
 
 <div class="cards">
 
-<div class="card">
+<div class="card fade-in">
 <h3>Total Leaves</h3>
 <p id="totalLeaves">0</p>
 </div>
 
-<div class="card">
+<div class="card fade-in">
 <h3>Pending</h3>
 <p id="pendingLeaves">0</p>
 </div>
 
-<div class="card">
+<div class="card fade-in">
 <h3>Approved</h3>
 <p id="approvedLeaves">0</p>
 </div>
@@ -229,64 +78,74 @@ white-space:nowrap;
 
 <!-- LEAVE BALANCE -->
 
-<h2>Leave Balance</h2>
+<div class="card fade-in" style="margin-top:20px;">
+
+<h3>Leave Balance</h3>
 
 <table>
-
 <thead>
-
 <tr>
 <th>Leave Type</th>
-<th>Maximum</th>
+<th>Total</th>
 <th>Used</th>
 <th>Remaining</th>
 </tr>
-
 </thead>
 
 <tbody id="leaveBalanceTable"></tbody>
-
 </table>
 
+</div>
 
 <!-- RECENT LEAVES -->
 
-<h2 style="margin-top:40px;">Recent Leave Requests</h2>
+<div class="card fade-in" style="margin-top:20px;">
+
+<h3>Recent Leave Requests</h3>
 
 <table>
-
 <thead>
-
 <tr>
 <th>Leave Type</th>
 <th>Start Date</th>
 <th>End Date</th>
 <th>Status</th>
 </tr>
-
 </thead>
 
 <tbody id="leaveTable"></tbody>
-
 </table>
+
+</div>
 
 </div>
 
 <!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
+
 <script src="js/auth.js"></script>
+
 <script src="js/employee-dashboard.js"></script>
 
 <script>
 
-function toggleMenu(){
+// SIDEBAR TOGGLE (MATCH ADMIN)
+function toggleSidebar(){
 
-document.getElementById("sidebar").classList.toggle("show")
+const sidebar=document.getElementById("sidebar")
+
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
+}
 
 }
 
