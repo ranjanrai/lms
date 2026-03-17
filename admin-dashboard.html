@@ -167,10 +167,17 @@ function toggleSidebar(){
 
 const sidebar = document.getElementById("sidebar")
 const overlay = document.getElementById("overlay")
+const notifPanel = document.getElementById("notifPanel")
 
 if(window.innerWidth <= 768){
     sidebar.classList.toggle("active")
     overlay.classList.toggle("active")
+
+    // 🔥 CLOSE NOTIFICATION PANEL
+    if(notifPanel){
+        notifPanel.style.display = "none"
+    }
+
 }else{
     sidebar.classList.toggle("collapsed")
 }
