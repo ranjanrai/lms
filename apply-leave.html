@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+<title>Apply Leave</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MAIN CSS -->
+
+<link rel="stylesheet" href="css/style.css">
+
+<!-- ICONS -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+
+<div class="sidebar" id="sidebar">
+
+<h2>Employee Panel</h2>
+
+<a href="employee-dashboard.html" class="menu">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="apply-leave.html" class="menu active">
+<i class="fas fa-paper-plane"></i> <span>Apply Leave</span>
+</a>
+
+<a href="leave-history.html" class="menu">
+<i class="fas fa-history"></i> <span>Leave History</span>
+</a>
+
+<a href="#" class="menu" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
+
+</div>
+
+<!-- MAIN -->
+
+<div class="main">
+
+<!-- HEADER -->
+
+<div class="header">
+<button onclick="toggleSidebar()">
+<i class="fas fa-bars"></i>
+</button>
+<h2>Apply Leave</h2>
+</div>
+
+<!-- FORM CARD -->
+
+<div class="card fade-in" style="max-width:500px;">
+
+<form id="leaveForm">
+
+<label>Leave Type</label> <select id="leaveType"></select>
+
+<label>Start Date</label> <input type="date" id="startDate">
+
+<label>End Date</label> <input type="date" id="endDate">
+
+<label>Reason</label>
+
+<textarea id="reason" placeholder="Enter reason"></textarea>
+
+<button type="button" onclick="applyLeave()">
+Submit Leave Request
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase.js"></script>
+
+<script src="js/leave.js"></script>
+
+<script>
+
+// SIDEBAR TOGGLE (MATCH SYSTEM)
+function toggleSidebar(){
+
+const sidebar=document.getElementById("sidebar")
+
+if(window.innerWidth <= 768){
+sidebar.classList.toggle("active")
+}else{
+sidebar.classList.toggle("collapsed")
+}
+
+}
+
+</script>
+
+</body>
+</html>
