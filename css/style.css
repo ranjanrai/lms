@@ -473,3 +473,17 @@ margin-bottom:20px;
 #overlay{
     z-index: 1500;
 }
+
+.notif-panel{
+    z-index: 100 !important;
+}
+.sidebar{
+    z-index: 2000 !important;
+}
+.header{
+    position: relative;
+    z-index: 10;
+}
+#overlay{
+    z-index: 1500;
+}
