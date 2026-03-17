@@ -1,12 +1,17 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
 
-<title>Leave Requests</title>
+<title>Employee Approval</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- CSS -->
+
 <link rel="stylesheet" href="css/style.css">
+
+<!-- ICONS -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
@@ -23,11 +28,11 @@
 <i class="fas fa-home"></i> <span>Dashboard</span>
 </a>
 
-<a href="admin-leave-requests.html" class="menu active">
+<a href="admin-leave-requests.html" class="menu">
 <i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
 </a>
 
-<a href="admin-employee-approval.html" class="menu">
+<a href="admin-employee-approval.html" class="menu active">
 <i class="fas fa-user-check"></i> <span>Employee Approval</span>
 </a>
 
@@ -59,31 +64,46 @@
 <button onclick="toggleSidebar()">
 <i class="fas fa-bars"></i>
 </button>
-<h2>Leave Requests</h2>
+<h2>Employee Approval</h2>
 </div>
 
-<!-- CARD WRAPPER -->
+<!-- STATS CARDS -->
+
+<div class="cards">
 
 <div class="card fade-in">
+<h3>Pending Employees</h3>
+<p id="pendingCount">0</p>
+</div>
+
+<div class="card fade-in">
+<h3>Approved Employees</h3>
+<p id="approvedCount">0</p>
+</div>
+
+<div class="card fade-in">
+<h3>Rejected Employees</h3>
+<p id="rejectedCount">0</p>
+</div>
+
+</div>
+
+<!-- TABLE -->
+
+<h2 style="margin-top:20px;">Pending Employee Registrations</h2>
 
 <table>
 <thead>
 <tr>
-<th>Employee</th>
+<th>Name</th>
 <th>Email</th>
-<th>Leave Type</th>
-<th>Start</th>
-<th>End</th>
-<th>Reason</th>
 <th>Status</th>
 <th>Action</th>
 </tr>
 </thead>
 
-<tbody id="leaveRequests"></tbody>
+<tbody id="employeeTable"></tbody>
 </table>
-
-</div>
 
 </div>
 
@@ -97,9 +117,11 @@
 
 <script src="js/firebase.js"></script>
 
-<script src="js/admin.js"></script>
-
 <script>
+
+// =======================
+// SIDEBAR TOGGLE
+// =======================
 function toggleSidebar(){
 
 const sidebar=document.getElementById("sidebar")
@@ -111,6 +133,126 @@ sidebar.classList.toggle("collapsed")
 }
 
 }
+
+// =======================
+// ACTIVE MENU
+// =======================
+const links=document.querySelectorAll(".menu")
+links.forEach(link=>{
+link.addEventListener("click",function(){
+links.forEach(l=>l.classList.remove("active"))
+this.classList.add("active")
+})
+})
+
+// =======================
+// ADMIN CHECK
+// =======================
+auth.onAuthStateChanged(async function(user){
+
+if(!user){
+window.location.href="login.html"
+return
+}
+
+const doc=await db.collection("users").doc(user.uid).get()
+
+if(!doc.exists || doc.data().role!=="admin"){
+alert("Access denied")
+window.location.href="login.html"
+return
+}
+
+loadEmployees()
+
+})
+
+// =======================
+// LOAD EMPLOYEES
+// =======================
+function loadEmployees(){
+
+const table=document.getElementById("employeeTable")
+
+let pending=0, approved=0, rejected=0
+
+db.collection("users").onSnapshot(snapshot=>{
+
+table.innerHTML=""
+
+snapshot.forEach(doc=>{
+
+let data=doc.data()
+
+if(data.role!=="employee") return
+
+// COUNT
+if(data.status==="pending") pending++
+if(data.status==="approved") approved++
+if(data.status==="rejected") rejected++
+
+// SHOW ONLY PENDING
+if(data.status!=="pending") return
+
+let row=`
+<tr class="fade-in">
+
+<td>${data.name}</td>
+<td>${data.email}</td>
+<td><span style="color:orange;font-weight:bold;">Pending</span></td>
+
+<td>
+<button class="btn-approve" onclick="approveUser('${doc.id}')">
+<i class="fas fa-check"></i>
+</button>
+
+<button class="btn-reject" onclick="rejectUser('${doc.id}')">
+<i class="fas fa-times"></i>
+</button>
+</td>
+
+</tr>
+`
+
+table.innerHTML+=row
+
+})
+
+// UPDATE CARDS
+document.getElementById("pendingCount").innerText=pending
+document.getElementById("approvedCount").innerText=approved
+document.getElementById("rejectedCount").innerText=rejected
+
+})
+
+}
+
+// =======================
+// APPROVE
+// =======================
+function approveUser(uid){
+
+db.collection("users").doc(uid).update({
+status:"approved"
+}).then(()=>{
+alert("Employee approved")
+})
+
+}
+
+// =======================
+// REJECT
+// =======================
+function rejectUser(uid){
+
+db.collection("users").doc(uid).update({
+status:"rejected"
+}).then(()=>{
+alert("Employee rejected")
+})
+
+}
+
 </script>
 
 </body>
