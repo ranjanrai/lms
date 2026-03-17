@@ -487,3 +487,6 @@ margin-bottom:20px;
 #overlay{
     z-index: 1500;
 }
+
+position: fixed;
+z-index: 9999;
