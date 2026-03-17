@@ -5,6 +5,8 @@
 
 <title>Login - Leave Management System</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="css/style.css">
 
 <style>
@@ -14,49 +16,81 @@ font-family:Arial;
 background:#f4f6f9;
 margin:0;
 padding:0;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
 }
 
+/* CONTAINER */
+
 .container{
-width:350px;
-margin:100px auto;
+width:90%;
+max-width:380px;
 background:white;
 padding:30px;
-border-radius:6px;
+border-radius:8px;
 box-shadow:0 0 10px rgba(0,0,0,0.1);
 text-align:center;
 }
+
+/* TITLE */
 
 h2{
 margin-bottom:20px;
 }
 
+/* INPUT */
+
 input{
 width:100%;
-padding:10px;
+padding:12px;
 margin:10px 0;
 border:1px solid #ccc;
-border-radius:4px;
+border-radius:5px;
+font-size:15px;
+box-sizing:border-box;
 }
+
+/* BUTTON */
 
 button{
 width:100%;
-padding:10px;
+padding:12px;
 background:#2d7ef7;
 color:white;
 border:none;
 cursor:pointer;
 font-size:16px;
+border-radius:5px;
 }
 
 button:hover{
 background:#1b5edb;
 }
 
+/* REGISTER LINK */
+
 .register{
 margin-top:15px;
 display:block;
 text-decoration:none;
 color:#2d7ef7;
+font-size:14px;
+}
+
+/* MOBILE ADJUSTMENT */
+
+@media (max-width:480px){
+
+.container{
+padding:25px;
+}
+
+h2{
+font-size:22px;
+}
+
 }
 
 </style>
@@ -76,9 +110,7 @@ color:#2d7ef7;
 <button onclick="login()">Login</button>
 
 <a class="register" href="register.html">
-
 Create new account
-
 </a>
 
 </div>
@@ -91,7 +123,6 @@ Create new account
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 
 <script src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
