@@ -17,8 +17,9 @@ font-family:'Segoe UI',sans-serif;
 
 /* BODY */
 body{
-display:flex;
-background:var(--bg);
+  display:block;   /* IMPORTANT */
+  background:var(--bg);
+  overflow-y:auto;
 }
 
 /* SIDEBAR */
@@ -80,6 +81,10 @@ margin-left:240px;
 padding:20px;
 width:100%;
 transition:0.4s;
+}
+.main{
+  min-height:100vh;
+  overflow-y:auto;
 }
 
 .sidebar.collapsed ~ .main{
@@ -423,4 +428,10 @@ table{
     }
 }
 
-
+html, body{
+  height:auto;
+  overflow-y:auto;
+}
+.wrapper{
+  display:flex;
+}
