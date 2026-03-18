@@ -266,27 +266,14 @@ action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
 
 let row = `
 <tr>
+
 <td>${data.name}</td>
-<td>${data.email || "-"}</td>
 <td>${data.leaveType}</td>
-<td>${data.start}</td>
-<td>${data.end}</td>
+<td>${data.startDate}</td>
+<td>${data.endDate}</td>
 <td>${data.reason}</td>
-
-<td>
-<span class="status ${statusClass}">
-${data.status}
-</span>
-</td>
-
-<td>
-${data.status === "pending" ? `
-<button onclick="updateStatus('${id}','approved')" class="btn approve">Approve</button>
-<button onclick="updateStatus('${id}','rejected')" class="btn reject">Reject</button>
-` : ""}
-
-<button onclick="deleteLeave('${id}')" class="btn delete">Delete</button>
-</td>
+<td>${data.status}</td>
+<td>${action}</td>
 
 </tr>
 `
