@@ -403,3 +403,53 @@ margin-bottom:20px;
     font-size: 11px;
     color: #777;
 }
+.form-group{
+margin-bottom:15px;
+display:flex;
+flex-direction:column;
+}
+
+.form-row{
+display:flex;
+gap:15px;
+}
+
+.form-row .form-group{
+flex:1;
+}
+
+input, select, textarea{
+padding:10px;
+border:1px solid #ccc;
+border-radius:5px;
+font-size:14px;
+width:100%;
+}
+
+textarea{
+resize:none;
+height:80px;
+}
+
+.btn-primary{
+background:#4CAF50;
+color:white;
+padding:10px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.holiday-list{
+list-style:none;
+padding:0;
+}
+
+.holiday-list li{
+background:#ffecec;
+color:#d63031;
+padding:8px;
+margin-bottom:5px;
+border-radius:4px;
+font-weight:500;
+}
