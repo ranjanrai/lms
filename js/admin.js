@@ -18,12 +18,26 @@ return
 }
 
 // Run system functions
+// COMMON
 autoResetLeaveCycle()
-loadStats()
-loadEmployees()
-loadLeaveRequests()
-loadLeaveBalance()
 loadNotifications()
+
+// PAGE-WISE SAFE CALLS
+if(document.getElementById("leaveRequests")){
+    loadLeaveRequests()
+}
+
+if(document.getElementById("employeeTable")){
+    loadEmployees()
+}
+
+if(document.getElementById("totalEmployees")){
+    loadStats()
+}
+
+if(document.getElementById("leaveHeader")){
+    loadLeaveBalance()
+}
 
 })
 
