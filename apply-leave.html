@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -57,25 +57,46 @@
 
 <!-- FORM CARD -->
 
-<div class="card fade-in" style="max-width:500px;">
+<div class="card fade-in" style="max-width:600px;">
 
 <form id="leaveForm">
 
-<label>Leave Type</label> <select id="leaveType"></select>
+<div class="form-group">
+<label>Leave Type</label>
+<select id="leaveType"></select>
+</div>
 
-<label>Start Date</label> <input type="date" id="startDate">
+<div class="form-row">
+<div class="form-group">
+<label>Start Date</label>
+<input type="date" id="startDate">
+</div>
 
-<label>End Date</label> <input type="date" id="endDate">
+<div class="form-group">
+<label>End Date</label>
+<input type="date" id="endDate">
+</div>
+</div>
 
+<div class="form-group">
 <label>Reason</label>
-
 <textarea id="reason" placeholder="Enter reason"></textarea>
+</div>
 
-<button type="button" onclick="applyLeave()">
+<button type="button" onclick="applyLeave()" class="btn-primary">
 Submit Leave Request
 </button>
 
 </form>
+
+</div>
+<div class="card fade-in" style="max-width:600px; margin-top:20px;">
+
+<h3>📅 Holidays</h3>
+
+<ul id="holidayList" class="holiday-list"></ul>
+
+</div>
 
 </div>
 
