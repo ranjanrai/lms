@@ -1,4 +1,4 @@
-﻿// ===============================
+// ===============================
 // CHECK ADMIN LOGIN
 // ===============================
 
@@ -223,6 +223,7 @@ alert("Leave balance reset successfully")
 function loadLeaveRequests(){
 
 const leaveTable = document.getElementById("leaveRequests")
+const totalElement = document.getElementById("totalLeaveRequests")
 
 db.collection("leaves")
 .orderBy("createdAt","desc")
@@ -230,9 +231,17 @@ db.collection("leaves")
 
 leaveTable.innerHTML=""
 
+let count = 0   // ✅ counter
+
 snapshot.forEach(doc=>{
 
 let data = doc.data()
+
+// ✅ calculate days
+let totalDays = 0
+if(data.startDate && data.endDate){
+    totalDays = calculateDays(data.startDate, data.endDate)
+}
 
 let action=""
 
@@ -257,6 +266,7 @@ let row = `
 <td>${data.leaveType}</td>
 <td>${data.startDate}</td>
 <td>${data.endDate}</td>
+<td>${totalDays}</td>
 <td>${data.reason}</td>
 <td>${data.status}</td>
 <td>${action}</td>
@@ -266,12 +276,27 @@ let row = `
 
 leaveTable.innerHTML += row
 
+count++   // ✅ increase count
+
 })
+
+// ✅ update UI
+if(totalElement){
+    totalElement.innerText = count
+}
 
 })
 
 }
+function calculateDays(start, end) {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
 
+    const diffTime = endDate - startDate
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+
+    return diffDays + 1   // ✅ include both start & end
+}
 
 
 // ===============================
