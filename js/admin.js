@@ -100,7 +100,7 @@ db.collection("leave_requests")
 document.getElementById("totalLeaves").innerText = snapshot.size
 })
 
-db.collection("leaves")
+db.collection("leave_requests")
 .where("status","==","pending")
 .get()
 .then(snapshot=>{
@@ -230,7 +230,7 @@ const leaveTable = document.getElementById("leaveRequests")
   // ✅ ADD HERE (before fetching data)
 leaveTable.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>"
 
-db.collection("leaves")
+db.collection("leave_requests")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
 
@@ -287,7 +287,7 @@ leaveTable.innerHTML += row
 
 async function approveLeave(id){
 
-const docRef = db.collection("leaves").doc(id)
+const docRef = db.collection("leave_requests").doc(id)
 const docSnap = await docRef.get()
 let data = docSnap.data()
 
@@ -323,7 +323,7 @@ status:"approved"
 
 function rejectLeave(id){
 
-db.collection("leaves").doc(id).update({
+db.collection("leave_requests").doc(id).update({
 status:"rejected"
 })
 
@@ -339,7 +339,7 @@ function deleteLeave(id){
 
 if(confirm("Delete this leave request?")){
 
-db.collection("leaves").doc(id).delete()
+db.collection("leave_requests").doc(id).delete()
 
 }
 
@@ -378,7 +378,7 @@ const usersSnapshot = await db.collection("users")
 .get()
 
 // ✅ Get ALL leaves at once
-const leavesSnapshot = await db.collection("leaves")
+const leavesSnapshot = await db.collection("leave_requests")
 .where("status","==","approved")
 .get()
 
