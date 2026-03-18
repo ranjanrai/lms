@@ -413,3 +413,7 @@ table{
     min-width: 900px; /* forces scroll instead of breaking layout */
     border-collapse: collapse;
 }
+.main{
+    overflow-x: hidden;
+}
+
