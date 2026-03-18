@@ -36,7 +36,7 @@ if(document.getElementById("totalEmployees")){
 }
 
 if(document.getElementById("leaveHeader")){
-    loadLeaveBalance()
+    Balance()
 }
 
 })
@@ -250,29 +250,32 @@ let data = doc.data()
 
 let action=""
 
+// STATUS BUTTONS
 if(data.status==="pending"){
 
 action = `
-<button onclick="approveLeave('${doc.id}')">Approve</button>
-<button onclick="rejectLeave('${doc.id}')">Reject</button>
-<button onclick="deleteLeave('${doc.id}')">Delete</button>
+<button class="btn approve" onclick="approveLeave('${doc.id}')">Approve</button>
+<button class="btn reject" onclick="rejectLeave('${doc.id}')">Reject</button>
+<button class="btn delete" onclick="deleteLeave('${doc.id}')">Delete</button>
 `
 
 }else{
 
-action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
+action = `<button class="btn delete" onclick="deleteLeave('${doc.id}')">Delete</button>`
 
 }
 
+// ROW (MATCH YOUR UI TABLE)
 let row = `
 <tr>
 
-<td>${data.name}</td>
-<td>${data.leaveType}</td>
-<td>${data.startDate}</td>
-<td>${data.endDate}</td>
-<td>${data.reason}</td>
-<td>${data.status}</td>
+<td>${data.name || ""}</td>
+<td>${data.email || ""}</td>
+<td>${data.leaveType || ""}</td>
+<td>${data.startDate || ""}</td>
+<td>${data.endDate || ""}</td>
+<td>${data.reason || ""}</td>
+<td class="status ${data.status}">${data.status}</td>
 <td>${action}</td>
 
 </tr>
