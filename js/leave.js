@@ -1,3 +1,61 @@
+async function displayHolidays(){
+
+    const list = document.getElementById("holidayList")
+    list.innerHTML = ""
+
+    const snapshot = await db.collection("holidays").get()
+
+    snapshot.forEach(doc=>{
+        let data = doc.data()
+
+        let li = document.createElement("li")
+        li.textContent = data.holiday_date + " - " + data.holiday_name
+
+        list.appendChild(li)
+    })
+}
+async function getHolidays(){
+
+    const snapshot = await db.collection("holidays").get()
+
+    let holidays = []
+
+    snapshot.forEach(doc=>{
+        holidays.push(doc.data().holiday_date)
+    })
+
+    return holidays
+}
+
+
+async function checkHolidayInput(){
+
+    const holidays = await getHolidays()
+
+    const startInput = document.getElementById("startDate")
+    const endInput = document.getElementById("endDate")
+
+    function validate(){
+
+        if(startInput.value && holidays.includes(startInput.value)){
+            alert("Start date is a holiday!")
+            startInput.value = ""
+        }
+
+        if(endInput.value && holidays.includes(endInput.value)){
+            alert("End date is a holiday!")
+            endInput.value = ""
+        }
+    }
+
+    startInput.addEventListener("change", validate)
+    endInput.addEventListener("change", validate)
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    displayHolidays()
+    checkHolidayInput()
+})
 // ===========================
 // LOAD LEAVE TYPES
 // ===========================
@@ -126,7 +184,21 @@ async function applyLeave() {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        const requestedDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
+       const holidays = await getHolidays()
+
+let requestedDays = 0
+let current = new Date(startDate)
+
+while(current <= new Date(endDate)){
+
+    let d = current.toISOString().split("T")[0]
+
+    if(!holidays.includes(d)){
+        requestedDays++
+    }
+
+    current.setDate(current.getDate() + 1)
+}
 
         if ((usedDays + requestedDays) > maxDays) {
             alert("Leave limit exceeded. Remaining: " + (maxDays - usedDays));
