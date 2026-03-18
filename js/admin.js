@@ -119,6 +119,8 @@ function loadEmployees(){
 
 const container = document.getElementById("employeeList")
 
+if(!container) return
+
 db.collection("users")
 .where("role","==","employee")
 .onSnapshot(snapshot=>{
@@ -129,12 +131,12 @@ snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let card = `
+container.innerHTML += `
 <div class="employee-card">
 
-<h4>${data.name}</h4>
-<p>${data.email}</p>
-<p>Status: <b>${data.status}</b></p>
+<h4>${data.name || "No Name"}</h4>
+<p>${data.email || "No Email"}</p>
+<p>Status: <b>${data.status || "pending"}</b></p>
 
 <div class="actions">
 <button onclick="approveEmployee('${doc.id}')">Approve</button>
@@ -144,8 +146,6 @@ let card = `
 
 </div>
 `
-
-container.innerHTML += card
 
 })
 
@@ -222,6 +222,8 @@ function loadLeaveRequests(){
 
 const container = document.getElementById("leaveList")
 
+if(!container) return
+
 db.collection("leaves")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
@@ -232,9 +234,9 @@ snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let actions=""
+let actions = ""
 
-if(data.status==="pending"){
+if(data.status === "pending"){
 actions = `
 <button onclick="approveLeave('${doc.id}')">Approve</button>
 <button onclick="rejectLeave('${doc.id}')">Reject</button>
@@ -244,14 +246,14 @@ actions = `
 actions = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
 }
 
-let card = `
+container.innerHTML += `
 <div class="leave-card">
 
-<p><b>${data.name}</b></p>
-<p>${data.email || "N/A"}</p>
-<p>${data.leaveType}</p>
-<p>${data.startDate} → ${data.endDate}</p>
-<p>${data.reason}</p>
+<p><b>${data.name || "No Name"}</b></p>
+<p>${data.email || "No Email"}</p>
+<p>${data.leaveType || "-"}</p>
+<p>${data.startDate || "-"} → ${data.endDate || "-"}</p>
+<p>${data.reason || "-"}</p>
 <p>Status: <b>${data.status}</b></p>
 
 <div class="actions">
@@ -261,14 +263,11 @@ ${actions}
 </div>
 `
 
-container.innerHTML += card
-
 })
 
 })
 
 }
-
 
 // ===============================
 // APPROVE LEAVE
