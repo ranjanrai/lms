@@ -1,4 +1,4 @@
-﻿// ===============================
+// ===============================
 // CHECK ADMIN LOGIN
 // ===============================
 
@@ -134,11 +134,7 @@ let row = `
 
 <td>${data.name}</td>
 <td>${data.email}</td>
-<td>
-<span class="status ${data.status}">
-${data.status}
-</span>
-</td>
+<td>${data.status}</td>
 
 <td>
 <button onclick="approveEmployee('${doc.id}')">Approve</button>
@@ -227,8 +223,6 @@ alert("Leave balance reset successfully")
 function loadLeaveRequests(){
 
 const leaveTable = document.getElementById("leaveRequests")
-  // ✅ ADD HERE (before fetching data)
-leaveTable.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>"
 
 db.collection("leaves")
 .orderBy("createdAt","desc")
@@ -260,7 +254,6 @@ let row = `
 <tr>
 
 <td>${data.name}</td>
-<td>${data.email || "-"}</td>
 <td>${data.leaveType}</td>
 <td>${data.startDate}</td>
 <td>${data.endDate}</td>
@@ -287,29 +280,20 @@ leaveTable.innerHTML += row
 
 async function approveLeave(id){
 
-const docRef = db.collection("leaves").doc(id)
-const docSnap = await docRef.get()
-let data = docSnap.data()
+const doc = await db.collection("leaves").doc(id).get()
+
+let data = doc.data()
 
 let uid = data.userId
 let type = data.leaveType
 
-let userRef = db.collection("users").doc(uid)
-let userDoc = await userRef.get()
+let field = `leave_balance.${type}`
 
-let balance = userDoc.data().leave_balance[type] || 0
-
-if(balance <= 0){
-alert("No leave balance remaining")
-return
-}
-
-// Deduct leave
-await userRef.update({
-[`leave_balance.${type}`]: firebase.firestore.FieldValue.increment(-1)
+await db.collection("users").doc(uid).update({
+[field]: firebase.firestore.FieldValue.increment(-1)
 })
 
-await docRef.update({
+await db.collection("leaves").doc(id).update({
 status:"approved"
 })
 
@@ -358,31 +342,24 @@ const table = document.getElementById("leaveBalanceTable")
 
 header.innerHTML=`<th>Employee</th><th>Email</th>`
 
-// Get leave types
 const leaveTypesSnapshot = await db.collection("leave_types").get()
 
 let leaveTypes=[]
 
 leaveTypesSnapshot.forEach(doc=>{
 let data = doc.data()
+
 leaveTypes.push({
 name:data.name,
 max:parseInt(data.max_days)
 })
+
 header.innerHTML += `<th>${data.name}</th>`
 })
 
-// Get all users
 const usersSnapshot = await db.collection("users")
 .where("role","==","employee")
 .get()
-
-// ✅ Get ALL leaves at once
-const leavesSnapshot = await db.collection("leaves")
-.where("status","==","approved")
-.get()
-
-let leavesData = leavesSnapshot.docs.map(doc=>doc.data())
 
 table.innerHTML=""
 
@@ -398,16 +375,20 @@ let row=`<tr>
 
 for(const leave of leaveTypes){
 
-let used = leavesData.filter(l =>
-l.userId === uid &&
-l.leaveType === leave.name
-).length
+let leavesSnapshot = await db.collection("leaves")
+.where("userId","==",uid)
+.where("leaveType","==",leave.name)
+.where("status","==","approved")
+.get()
+
+let used = leavesSnapshot.size
 
 row += `<td>${used} / ${leave.max}</td>`
 
 }
 
 row += "</tr>"
+
 table.innerHTML += row
 
 }
@@ -493,7 +474,13 @@ if(!panel.contains(e.target) && !bell.contains(e.target)){
 panel.style.display = "none"
 }
 })
+function markNotificationRead(id){
 
+db.collection("notifications").doc(id).update({
+read:true
+})
+
+}
 
 function hideNotification(id){
 
