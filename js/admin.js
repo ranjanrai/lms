@@ -1,4 +1,4 @@
-// ===============================
+﻿// ===============================
 // CHECK ADMIN LOGIN
 // ===============================
 
@@ -18,26 +18,12 @@ return
 }
 
 // Run system functions
-// COMMON
 autoResetLeaveCycle()
+loadStats()
+loadEmployees()
+loadLeaveRequests()
+loadLeaveBalance()
 loadNotifications()
-
-// PAGE-WISE SAFE CALLS
-if(document.getElementById("leaveRequests")){
-    loadLeaveRequests()
-}
-
-if(document.getElementById("employeeTable")){
-    loadEmployees()
-}
-
-if(document.getElementById("totalEmployees")){
-    loadStats()
-}
-
-if(document.getElementById("leaveHeader")){
-    Balance()
-}
 
 })
 
@@ -250,32 +236,29 @@ let data = doc.data()
 
 let action=""
 
-// STATUS BUTTONS
 if(data.status==="pending"){
 
 action = `
-<button class="btn approve" onclick="approveLeave('${doc.id}')">Approve</button>
-<button class="btn reject" onclick="rejectLeave('${doc.id}')">Reject</button>
-<button class="btn delete" onclick="deleteLeave('${doc.id}')">Delete</button>
+<button onclick="approveLeave('${doc.id}')">Approve</button>
+<button onclick="rejectLeave('${doc.id}')">Reject</button>
+<button onclick="deleteLeave('${doc.id}')">Delete</button>
 `
 
 }else{
 
-action = `<button class="btn delete" onclick="deleteLeave('${doc.id}')">Delete</button>`
+action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
 
 }
 
-// ROW (MATCH YOUR UI TABLE)
 let row = `
 <tr>
 
-<td>${data.name || ""}</td>
-<td>${data.email || ""}</td>
-<td>${data.leaveType || ""}</td>
-<td>${data.startDate || ""}</td>
-<td>${data.endDate || ""}</td>
-<td>${data.reason || ""}</td>
-<td class="status ${data.status}">${data.status}</td>
+<td>${data.name}</td>
+<td>${data.leaveType}</td>
+<td>${data.startDate}</td>
+<td>${data.endDate}</td>
+<td>${data.reason}</td>
+<td>${data.status}</td>
 <td>${action}</td>
 
 </tr>
