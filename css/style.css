@@ -722,3 +722,49 @@ padding-bottom:70px;
 }
 
   }
+
+/* CARD LIST */
+.card-list{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+/* EMPLOYEE CARD */
+.employee-card{
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.05);
+}
+
+.employee-card h4{
+  margin-bottom:5px;
+}
+
+/* LEAVE CARD */
+.leave-card{
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.05);
+}
+
+.leave-card p{
+  font-size:14px;
+  margin:3px 0;
+}
+
+/* ACTION BUTTONS */
+.actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.actions button{
+  flex:1;
+  font-size:12px;
+  padding:8px;
+}
