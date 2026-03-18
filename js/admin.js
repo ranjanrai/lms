@@ -117,42 +117,41 @@ document.getElementById("pendingLeaves").innerText = snapshot.size
 
 function loadEmployees(){
 
-const employeeTable = document.getElementById("employeeTable")
+const container = document.getElementById("employeeList")
 
 db.collection("users")
 .where("role","==","employee")
 .onSnapshot(snapshot=>{
 
-employeeTable.innerHTML=""
+container.innerHTML=""
 
 snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let row = `
-<tr>
+let card = `
+<div class="employee-card">
 
-<td>${data.name}</td>
-<td>${data.email}</td>
-<td>${data.status}</td>
+<h4>${data.name}</h4>
+<p>${data.email}</p>
+<p>Status: <b>${data.status}</b></p>
 
-<td>
+<div class="actions">
 <button onclick="approveEmployee('${doc.id}')">Approve</button>
 <button onclick="rejectEmployee('${doc.id}')">Reject</button>
-<button onclick="resetLeave('${doc.id}')">Reset Leave</button>
-</td>
+<button onclick="resetLeave('${doc.id}')">Reset</button>
+</div>
 
-</tr>
+</div>
 `
 
-employeeTable.innerHTML += row
+container.innerHTML += card
 
 })
 
 })
 
 }
-
 
 
 // ===============================
@@ -222,50 +221,48 @@ alert("Leave balance reset successfully")
 
 function loadLeaveRequests(){
 
-const leaveTable = document.getElementById("leaveRequests")
+const container = document.getElementById("leaveList")
 
 db.collection("leaves")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
 
-leaveTable.innerHTML=""
+container.innerHTML=""
 
 snapshot.forEach(doc=>{
 
 let data = doc.data()
 
-let action=""
+let actions=""
 
 if(data.status==="pending"){
-
-action = `
+actions = `
 <button onclick="approveLeave('${doc.id}')">Approve</button>
 <button onclick="rejectLeave('${doc.id}')">Reject</button>
 <button onclick="deleteLeave('${doc.id}')">Delete</button>
 `
-
 }else{
-
-action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
-
+actions = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
 }
 
-let row = `
-<tr>
+let card = `
+<div class="leave-card">
 
-<td>${data.name}</td>
-<td>${data.email || "N/A"}</td>
-<td>${data.leaveType}</td>
-<td>${data.startDate}</td>
-<td>${data.endDate}</td>
-<td>${data.reason}</td>
-<td>${data.status}</td>
-<td>${action}</td>
+<p><b>${data.name}</b></p>
+<p>${data.email || "N/A"}</p>
+<p>${data.leaveType}</p>
+<p>${data.startDate} → ${data.endDate}</p>
+<p>${data.reason}</p>
+<p>Status: <b>${data.status}</b></p>
 
-</tr>
+<div class="actions">
+${actions}
+</div>
+
+</div>
 `
 
-leaveTable.innerHTML += row
+container.innerHTML += card
 
 })
 
