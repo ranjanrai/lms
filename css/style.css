@@ -416,4 +416,11 @@ table{
 .main{
     overflow-x: hidden;
 }
+@media(max-width:768px){
+    th:nth-child(2),
+    td:nth-child(2){
+        display:none;
+    }
+}
+
 
