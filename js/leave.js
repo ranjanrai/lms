@@ -282,17 +282,32 @@ while(current <= new Date(endDate)){
         // CREATE ADMIN NOTIFICATION
         // ===========================
 
-        await db.collection("notifications").add({
+   // ===========================
+// CREATE ADMIN NOTIFICATION
+// ===========================
 
-            type: "leave_request",
-            title: "New Leave Request",
-            message: userData.name + " applied for " + leaveType,
-            userId: user.uid,
-            read: false,
-            hidden: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+const adminSnapshot = await db.collection("users")
+.where("role","==","admin")
+.get()
 
-        });
+adminSnapshot.forEach(admin => {
+
+    db.collection("notifications").add({
+
+        type: "leave_request",
+        title: "New Leave Request",
+        message: userData.name + " applied for " + leaveType,
+
+        userId: admin.id, // ✅ SEND TO ADMIN
+        role: "admin", // ✅ VERY IMPORTANT
+
+        read: false,
+        hidden: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+    })
+
+})
 
 
         // ===========================
