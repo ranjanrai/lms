@@ -48,7 +48,7 @@
 <i class="fas fa-calendar"></i> <span>Holidays</span>
 </a>
 
-<a href="index.html" class="menu">
+<a href="#" onclick="logout()" class="menu">
 <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
 </a>
 
@@ -105,10 +105,17 @@
 
 </div>
 
+<div style="margin:15px 0;">
+<input type="text" id="searchEmployee"
+placeholder="🔍 AI Search (name or email...)"
+onkeyup="searchEmployee()"
+style="padding:8px;width:250px;border-radius:6px;border:1px solid #ccc;">
+</div>
+
 <!-- EMPLOYEES -->
 
 <div class="section">
-<h2>Employees</h2>
+<h2>👨‍💼 Active Employees</h2>
 
 <table class="table">
 <thead>
@@ -122,6 +129,34 @@
 
 <tbody id="employeeTable"></tbody>
 </table>
+</div>
+
+<div class="section">
+<h2>🗑 Deleted Employees</h2>
+
+<table class="table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="deletedEmployeeTable"></tbody>
+</table>
+</div>
+
+<div id="aiInsight"
+style="
+margin:15px 0;
+padding:10px;
+background:#f0f8ff;
+border-left:5px solid #007bff;
+font-weight:bold;
+border-radius:5px;">
+🤖 AI Insight will appear here...
 </div>
 
 <!-- LEAVE REQUESTS -->
