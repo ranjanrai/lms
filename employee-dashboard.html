@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -49,10 +49,23 @@
 <!-- HEADER -->
 
 <div class="header">
+
 <button onclick="toggleSidebar()">
 <i class="fas fa-bars"></i>
 </button>
+
 <h2>Employee Dashboard</h2>
+
+<!-- 🔔 Notification Bell -->
+<div class="notif-bell" onclick="toggleNotifBox()">
+<i class="fas fa-bell"></i>
+<span id="notifCount">0</span>
+</div>
+
+</div>
+<div class="notif-box" id="notifBox">
+<h4>Notifications</h4>
+<ul id="notificationList"></ul>
 </div>
 
 <!-- CARDS -->
