@@ -51,15 +51,13 @@ action="-"
 
 let row = `
 <tr>
-
-<td>${data.leaveType}</td>
-<td>${data.startDate}</td>
-<td>${data.endDate}</td>
-<td>${days}</td>
-<td>${data.reason}</td>
-<td class="${statusClass}">${data.status}</td>
-<td>${action}</td>
-
+<td data-label="Leave Type">${data.leaveType}</td>
+<td data-label="Start Date">${data.startDate}</td>
+<td data-label="End Date">${data.endDate}</td>
+<td data-label="Days">${days}</td>
+<td data-label="Reason">${data.reason}</td>
+<td data-label="Status">${data.status}</td>
+<td data-label="Action">${action}</td>
 </tr>
 `
 
