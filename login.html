@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 
 <head>
@@ -11,6 +12,7 @@
 
 <style>
 
+/* BODY */
 body{
 font-family:Arial;
 background:#f4f6f9;
@@ -23,37 +25,33 @@ min-height:100vh;
 }
 
 /* CONTAINER */
-
 .container{
 width:90%;
 max-width:380px;
 background:white;
 padding:30px;
-border-radius:8px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
+border-radius:10px;
+box-shadow:0 4px 15px rgba(0,0,0,0.1);
 text-align:center;
 }
 
 /* TITLE */
-
 h2{
 margin-bottom:20px;
 }
 
 /* INPUT */
-
 input{
 width:100%;
 padding:12px;
 margin:10px 0;
 border:1px solid #ccc;
-border-radius:5px;
+border-radius:6px;
 font-size:15px;
 box-sizing:border-box;
 }
 
 /* BUTTON */
-
 button{
 width:100%;
 padding:12px;
@@ -62,15 +60,39 @@ color:white;
 border:none;
 cursor:pointer;
 font-size:16px;
-border-radius:5px;
+border-radius:6px;
+transition:0.3s;
 }
 
 button:hover{
 background:#1b5edb;
 }
 
-/* REGISTER LINK */
+/* FORGOT PASSWORD */
+.forgot-password{
+text-align:right;
+margin-top:-5px;
+margin-bottom:10px;
+}
 
+.forgot-password a{
+font-size:13px;
+color:#2d7ef7;
+text-decoration:none;
+cursor:pointer;
+}
+
+.forgot-password a:hover{
+text-decoration:underline;
+}
+
+/* MESSAGE */
+#msg{
+font-size:13px;
+margin-top:10px;
+}
+
+/* REGISTER LINK */
 .register{
 margin-top:15px;
 display:block;
@@ -79,18 +101,10 @@ color:#2d7ef7;
 font-size:14px;
 }
 
-/* MOBILE ADJUSTMENT */
-
+/* MOBILE */
 @media (max-width:480px){
-
-.container{
-padding:25px;
-}
-
-h2{
-font-size:22px;
-}
-
+.container{padding:25px;}
+h2{font-size:22px;}
 }
 
 </style>
@@ -103,20 +117,22 @@ font-size:22px;
 
 <h2>Login</h2>
 
-<input type="email" id="email" placeholder="Enter Email">
+<input type="email" id="email" placeholder="Enter Email" required>
+<input type="password" id="password" placeholder="Enter Password" required>
 
-<input type="password" id="password" placeholder="Enter Password">
+<div class="forgot-password">
+  <a onclick="forgotPassword()">Forgot Password?</a>
+</div>
 
 <button onclick="login()">Login</button>
 
-<a class="register" href="register.html">
-Create new account
-</a>
+<p id="msg"></p>
+
+<a class="register" href="register.html">Create new account</a>
 
 </div>
 
-
-<!-- FIREBASE LIBRARIES -->
+<!-- FIREBASE -->
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 
@@ -125,8 +141,106 @@ Create new account
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
+
 <script src="js/auth.js"></script>
 
-</body>
+<script>
 
+// 🔐 LOGIN FUNCTION
+async function login(){
+
+  const email = document.getElementById("email").value.trim()
+  const password = document.getElementById("password").value.trim()
+  const msg = document.getElementById("msg")
+
+  msg.style.color = "red"
+
+  if(!email || !password){
+    msg.innerText = "⚠️ Enter email and password"
+    return
+  }
+
+  try{
+
+    const result = await auth.signInWithEmailAndPassword(email, password)
+    const user = result.user
+
+    // 🔍 Fetch user data using UID (NO QUERY)
+    const doc = await db.collection("users").doc(user.uid).get()
+
+    if(!doc.exists){
+      msg.innerText = "❌ User data not found"
+      return
+    }
+
+    const data = doc.data()
+
+    // 🚫 Admin approval check
+    if(!data.approved){
+      msg.innerText = "⛔ Your account is not approved yet"
+      return
+    }
+
+    // 🚫 Active check
+    if(data.status !== "active"){
+      msg.innerText = "⛔ Your account is inactive"
+      return
+    }
+
+    // ✅ SUCCESS
+    msg.style.color = "green"
+    msg.innerText = "Login successful..."
+
+    setTimeout(()=>{
+      window.location.href = "dashboard.html"
+    },1000)
+
+  }
+  catch(error){
+    msg.innerText = error.message
+  }
+
+}
+
+
+// 🔁 FORGOT PASSWORD (PROFESSIONAL VERSION)
+async function forgotPassword(){
+
+  const email = document.getElementById("email").value.trim()
+  const msg = document.getElementById("msg")
+
+  msg.style.color = "red"
+
+  if(!email){
+    msg.innerText = "⚠️ Please enter your email first"
+    return
+  }
+
+  try{
+
+    await auth.sendPasswordResetEmail(email)
+
+    msg.style.color = "green"
+    msg.innerText = "✅ If your account is approved, you will receive a reset link."
+
+  }
+  catch(error){
+
+    if(error.code === "auth/user-not-found"){
+      msg.innerText = "❌ No account found with this email"
+    }
+    else if(error.code === "auth/invalid-email"){
+      msg.innerText = "❌ Invalid email format"
+    }
+    else{
+      msg.innerText = error.message
+    }
+
+  }
+
+}
+
+</script>
+
+</body>
 </html>
