@@ -65,6 +65,14 @@ button:hover{
     background:#1b5edb;
 }
 
+/* ERROR TEXT */
+.error{
+    color:red;
+    font-size:13px;
+    text-align:left;
+    margin-top:-5px;
+}
+
 /* LOGIN LINK */
 .login{
     margin-top:15px;
@@ -74,7 +82,7 @@ button:hover{
     font-size:14px;
 }
 
-/* MOBILE EXTRA */
+/* MOBILE */
 @media (max-width:480px){
     .container{
         padding:20px;
@@ -96,10 +104,13 @@ button:hover{
 <h2>Create Account</h2>
 
 <input type="text" id="name" placeholder="Full Name">
+<div id="nameError" class="error"></div>
 
 <input type="email" id="email" placeholder="Email Address">
+<div id="emailError" class="error"></div>
 
 <input type="password" id="password" placeholder="Password">
+<div id="passwordError" class="error"></div>
 
 <button onclick="register()">Register</button>
 
@@ -116,7 +127,114 @@ Already have an account? Login
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="js/firebase.js"></script>
-<script src="js/auth.js"></script>
+
+<script>
+
+// =============================
+// CLEAR ERRORS
+// =============================
+function clearErrors(){
+    document.getElementById("nameError").innerText = ""
+    document.getElementById("emailError").innerText = ""
+    document.getElementById("passwordError").innerText = ""
+}
+
+// =============================
+// SHOW ERROR
+// =============================
+function showError(field, message){
+    document.getElementById(field + "Error").innerText = message
+}
+
+// =============================
+// REGISTER FUNCTION
+// =============================
+function register(){
+
+clearErrors()
+
+const name = document.getElementById("name").value.trim()
+const email = document.getElementById("email").value.trim()
+const password = document.getElementById("password").value.trim()
+
+let valid = true
+
+// ✅ VALIDATION
+if(!name){
+    showError("name","Please enter your full name")
+    valid = false
+}
+
+if(!email){
+    showError("email","Please enter your email address")
+    valid = false
+}
+
+if(!password){
+    showError("password","Please enter a password")
+    valid = false
+}
+
+if(password && password.length < 6){
+    showError("password","Password must be at least 6 characters")
+    valid = false
+}
+
+if(!valid) return
+
+// ✅ FIREBASE REGISTER
+auth.createUserWithEmailAndPassword(email, password)
+.then(userCredential => {
+
+    const user = userCredential.user
+
+    return db.collection("users").doc(user.uid).set({
+        name: name,
+        email: email,
+        role: "employee",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+
+})
+.then(() => {
+    alert("Account created successfully!")
+    window.location.href = "login.html"
+})
+.catch(error => {
+
+    let message = ""
+
+    switch(error.code){
+
+        case "auth/email-already-in-use":
+            message = "This email is already registered"
+            showError("email", message)
+            break
+
+        case "auth/invalid-email":
+            message = "Invalid email format"
+            showError("email", message)
+            break
+
+        case "auth/weak-password":
+            message = "Password should be at least 6 characters"
+            showError("password", message)
+            break
+
+        case "auth/missing-email":
+            message = "Email is required"
+            showError("email", message)
+            break
+
+        default:
+            alert(error.message)
+    }
+
+})
+
+}
+
+</script>
 
 </body>
 </html>
