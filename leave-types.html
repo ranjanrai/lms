@@ -1,17 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 
 <title>Leave Types</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- MAIN CSS -->
-
 <link rel="stylesheet" href="css/style.css">
-
-<!-- ICONS -->
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
@@ -19,64 +13,38 @@
 <body>
 
 <!-- SIDEBAR -->
-
 <div class="sidebar" id="sidebar">
-
 <h2>LMS Admin</h2>
 
-<a href="admin-dashboard.html" class="menu">
-<i class="fas fa-home"></i> <span>Dashboard</span>
-</a>
-
-<a href="admin-leave-requests.html" class="menu">
-<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
-</a>
-
-<a href="admin-employee-approval.html" class="menu">
-<i class="fas fa-user-check"></i> <span>Employee Approval</span>
-</a>
-
-<a href="leave-types.html" class="menu active">
-<i class="fas fa-list"></i> <span>Leave Types</span>
-</a>
-
-<a href="leave-settings.html" class="menu">
-<i class="fas fa-cog"></i> <span>Settings</span>
-</a>
-
-<a href="holidays.html" class="menu">
-<i class="fas fa-calendar"></i> <span>Holidays</span>
-</a>
-
-<a href="index.html" class="menu">
-<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-</a>
-
+<a href="admin-dashboard.html" class="menu"><i class="fas fa-home"></i> Dashboard</a>
+<a href="admin-leave-requests.html" class="menu"><i class="fas fa-calendar-check"></i> Leave Requests</a>
+<a href="admin-employee-approval.html" class="menu"><i class="fas fa-user-check"></i> Employee Approval</a>
+<a href="leave-types.html" class="menu active"><i class="fas fa-list"></i> Leave Types</a>
+<a href="leave-settings.html" class="menu"><i class="fas fa-cog"></i> Settings</a>
+<a href="holidays.html" class="menu"><i class="fas fa-calendar"></i> Holidays</a>
+<a href="index.html" class="menu"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
 
 <!-- MAIN -->
-
 <div class="main">
 
-<!-- HEADER -->
-
 <div class="header">
-<button onclick="toggleSidebar()">
-<i class="fas fa-bars"></i>
-</button>
+<button onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
 <h2>Leave Types</h2>
 </div>
 
-<!-- ADD FORM -->
+<!-- DEFAULT BUTTON -->
+<div style="margin-bottom:15px;">
+<button onclick="addDefaultLeaveTypes()">Add 7 Default Leave Types</button>
+</div>
 
+<!-- ADD FORM -->
 <div class="card fade-in">
 
 <h3>Add / Update Leave Type</h3>
 
 <input type="text" id="leaveName" placeholder="Leave Name">
-
 <input type="number" id="maxDays" placeholder="Maximum Days">
-
 <textarea id="description" placeholder="Description"></textarea>
 
 <button onclick="addLeaveType()">Save</button>
@@ -84,7 +52,6 @@
 </div>
 
 <!-- TABLE -->
-
 <div class="card fade-in" style="margin-top:20px;">
 
 <h3>Leave Types List</h3>
@@ -92,6 +59,7 @@
 <table>
 <thead>
 <tr>
+<th>Code</th>
 <th>Leave Name</th>
 <th>Max Days</th>
 <th>Description</th>
@@ -103,17 +71,56 @@
 </table>
 
 </div>
+<div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000080;">
 
+<div style="background:#fff; padding:20px; width:400px; margin:80px auto; border-radius:10px;">
+
+<h3>Leave Settings</h3>
+
+<label>Monthly Limit</label>
+<input type="number" id="monthlyLimit"
+<label>Probation Limit (Days)</label>
+<input type="number" id="probationLimit" placeholder="0 = Not allowed">
+<select id="monthlyEnabled">
+
+<option value="true">Enabled</option>
+<option value="false">Disabled</option>
+</select>
+
+<label>Carry Forward</label>
+<select id="carryForward">
+<option value="true">Yes</option>
+<option value="false">No</option>
+</select>
+<input type="number" id="carryForwardMax" placeholder="Max Days">
+
+<label>After 1 Year Only</label>
+<select id="after1YearOnly">
+<option value="true">Enabled</option>
+<option value="false">Disabled</option>
+</select>
+<input type="number" id="after1YearDays" placeholder="Days">
+
+<label>Apply Before (Days)</label>
+<input type="number" id="advanceDays">
+<select id="advanceEnabled">
+<option value="true">Enabled</option>
+<option value="false">Disabled</option>
+</select>
+
+<br><br>
+
+<button onclick="saveSettings()">Save</button>
+<button onclick="closeSettings()">Close</button>
+
+</div>
+</div>
 </div>
 
 <!-- FIREBASE -->
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <script src="js/firebase.js"></script>
 
 <script>
@@ -122,14 +129,53 @@
 // SIDEBAR TOGGLE
 // ============================
 function toggleSidebar(){
-
 const sidebar=document.getElementById("sidebar")
-
 if(window.innerWidth <= 768){
 sidebar.classList.toggle("active")
 }else{
 sidebar.classList.toggle("collapsed")
 }
+}
+
+// ============================
+// ADD DEFAULT 7 LEAVE TYPES
+// ============================
+function addDefaultLeaveTypes(){
+
+const leaveTypes = [
+  {code:"CL", name:"Casual Leave", max_days:12, description:"Personal/emergency"},
+  {code:"EL", name:"Earned Leave", max_days:10, description:"After 1 year"},
+  {code:"SL", name:"Sick Leave", max_days:12, description:"Medical"},
+  {code:"DL", name:"Duty Leave", max_days:30, description:"Academic"},
+  {code:"ML", name:"Maternity Leave", max_days:182, description:"Female staff"},
+  {code:"PL", name:"Paternity Leave", max_days:15, description:"Male staff"},
+  {code:"SPL", name:"Special Leave", max_days:0, description:"Exam duty"}
+];
+
+leaveTypes.forEach((leave)=>{
+
+db.collection("leave_types")
+.doc(leave.code)
+.set({
+...leave,
+
+settings:{
+  monthlyLimit:0,
+  monthlyEnabled:false,
+  carryForward:false,
+  carryForwardMax:0,
+  after1YearOnly:false,
+  after1YearDays:0,
+  advanceDays:0,
+  advanceEnabled:false,
+  probationLimit: 0   // ✅ ADD
+}
+
+});
+
+});
+
+alert("✅ 7 Leave Types Added!");
 
 }
 
@@ -149,12 +195,16 @@ alert("Please fill required fields")
 return
 }
 
+// auto code
+let code = name.split(" ").map(w=>w[0]).join("").toUpperCase()
+
 if(editId){
 
 db.collection("leave_types").doc(editId).update({
 name:name,
 max_days:days,
-description:description
+description:description,
+code:code
 }).then(()=>{
 alert("Updated")
 editId=null
@@ -166,10 +216,22 @@ clearForm()
 db.collection("leave_types").add({
 name:name,
 max_days:days,
-description:description
-}).then(()=>{
-alert("Added")
-clearForm()
+description:description,
+code:code,
+
+settings:{
+  monthlyLimit:0,
+  monthlyEnabled:false,
+  carryForward:false,
+  carryForwardMax:0,
+  after1YearOnly:false,
+  after1YearDays:0,
+  advanceDays:0,
+  advanceEnabled:false,
+  probationLimit: 0   // ✅ ADD
+
+}
+
 })
 
 }
@@ -193,11 +255,17 @@ let d=doc.data()
 html+=`
 <tr class="fade-in">
 
+<td>${d.code || "-"}</td>
 <td>${d.name}</td>
 <td>${d.max_days}</td>
 <td>${d.description}</td>
 
 <td>
+
+<button onclick="openSettings('${doc.id}')">
+<i class="fas fa-cog"></i>
+</button>
+
 <button onclick="editLeaveType('${doc.id}','${d.name}','${d.max_days}','${d.description}')">
 <i class="fas fa-edit"></i>
 </button>
@@ -205,6 +273,7 @@ html+=`
 <button class="btn-reject" onclick="deleteLeaveType('${doc.id}')">
 <i class="fas fa-trash"></i>
 </button>
+
 </td>
 
 </tr>
@@ -254,6 +323,81 @@ document.getElementById("description").value=""
 // AUTO LOAD
 loadLeaveTypes()
 
+let currentLeaveId = null;
+
+// OPEN SETTINGS
+function openSettings(id){
+
+currentLeaveId = id;
+
+db.collection("leave_types").doc(id).get().then(doc=>{
+
+let s = doc.data().settings || {};
+
+document.getElementById("monthlyLimit").value = s.monthlyLimit || 0;
+document.getElementById("probationLimit").value = s.probationLimit || 0;
+document.getElementById("monthlyEnabled").value = (s.monthlyEnabled ?? false).toString();
+
+document.getElementById("carryForward").value = (s.carryForward ?? false).toString();
+document.getElementById("carryForwardMax").value = s.carryForwardMax || 0;
+
+document.getElementById("after1YearOnly").value = (s.after1YearOnly ?? false).toString();
+document.getElementById("after1YearDays").value = s.after1YearDays || 0;
+
+document.getElementById("advanceDays").value = s.advanceDays || 0;
+document.getElementById("advanceEnabled").value = (s.advanceEnabled ?? false).toString();
+
+document.getElementById("settingsModal").style.display = "block";
+
+});
+
+}
+
+
+// SAVE SETTINGS
+function saveSettings(){
+
+let monthlyLimit = Number(document.getElementById("monthlyLimit").value)
+let probationLimit = Number(document.getElementById("probationLimit").value)
+let advanceDays = Number(document.getElementById("advanceDays").value)
+
+if(monthlyLimit < 0 || advanceDays < 0){
+alert("Values cannot be negative")
+return
+}
+
+let settings = {
+
+monthlyLimit: monthlyLimit,
+monthlyEnabled: document.getElementById("monthlyEnabled").value === "true",
+
+carryForward: document.getElementById("carryForward").value === "true",
+carryForwardMax: Number(document.getElementById("carryForwardMax").value) || 0,
+
+after1YearOnly: document.getElementById("after1YearOnly").value === "true",
+after1YearDays: Number(document.getElementById("after1YearDays").value) || 0,
+
+advanceDays: advanceDays,
+advanceEnabled: document.getElementById("advanceEnabled").value === "true",
+probationLimit: probationLimit   // ✅ NEW
+
+};
+
+db.collection("leave_types").doc(currentLeaveId).update({
+settings: settings
+})
+.then(()=>{
+alert("✅ Settings saved");
+closeSettings();
+});
+
+}
+
+
+// CLOSE
+function closeSettings(){
+document.getElementById("settingsModal").style.display="none";
+}
 </script>
 
 </body>
