@@ -55,6 +55,13 @@
 </button>
 
 <h2>Employee Dashboard</h2>
+<div id="probationBanner" style="
+margin:10px 0;
+padding:10px;
+border-radius:6px;
+font-weight:bold;
+display:none;">
+</div>
 
 <!-- 🔔 Notification Bell -->
 <div class="notif-bell" onclick="toggleNotifBox()">
@@ -63,14 +70,26 @@
 </div>
 
 </div>
-<div class="notif-box" id="notifBox">
-<h4>Notifications</h4>
-<ul id="notificationList"></ul>
+<div class="notif-box" id="notifBox" style="display:none;">
+ <div class="notif-header">
+  <h4>🔔 Notifications</h4>
+
+  <div class="notif-actions">
+    <button onclick="markAllRead()">Mark all</button>
+    <button onclick="toggleNotifBox()" class="close-btn">✖</button>
+  </div>
 </div>
+
+  <div id="notificationList" class="notif-list"></div>
+</div>
+
+ <h3>Leave Instructions</h3>
+<div class="leave-grid" id="leaveInstructions"></div>
 
 <!-- CARDS -->
 
 <div class="cards">
+  
 
 <div class="card fade-in">
 <h3>Total Leaves</h3>
@@ -110,6 +129,9 @@
 
 </div>
 
+
+
+
 <!-- RECENT LEAVES -->
 
 <div class="card fade-in" style="margin-top:20px;">
@@ -122,6 +144,7 @@
 <th>Leave Type</th>
 <th>Start Date</th>
 <th>End Date</th>
+<th>Days</th>   <!-- ✅ ADD THIS -->
 <th>Status</th>
 </tr>
 </thead>
@@ -130,7 +153,19 @@
 </table>
 
 </div>
+<div id="leaveModal" class="modal">
 
+  <div class="modal-content">
+    
+    <span class="close" onclick="closeLeaveModal()">&times;</span>
+    
+    <h3 id="modalTitle"></h3>
+    
+    <div id="modalBody"></div>
+
+  </div>
+
+</div>
 </div>
 
 <!-- FIREBASE -->
@@ -161,7 +196,10 @@ sidebar.classList.toggle("collapsed")
 }
 
 }
-
+function toggleNotifBox(){
+  const box = document.getElementById("notifBox")
+  box.style.display = box.style.display === "block" ? "none" : "block"
+}
 </script>
 
 </body>
