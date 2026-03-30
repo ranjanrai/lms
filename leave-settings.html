@@ -80,8 +80,7 @@
 <th>Start Year</th>
 <th>End Month</th>
 <th>End Year</th>
-<th>Monthly Limit</th>
-<th>Limit Enabled</th>
+
 </tr>
 </thead>
 
@@ -136,13 +135,7 @@
 
 <label>End Year</label> <input type="number" id="endYear">
 
-<label>Monthly Leave Limit</label> <input type="number" id="monthlyLimit">
 
-<label>Enable Monthly Limit</label> <select id="monthlyLimitEnabled">
-
-<option value="true">Enable</option>
-<option value="false">Disable</option>
-</select>
 
 <button onclick="saveLeaveSettings()">Save Settings</button>
 
@@ -156,6 +149,24 @@ border-radius:8px;
 ">
 Settings saved successfully
 </div>
+
+</div>
+
+<div class="card" style="margin-top:20px;">
+
+<h3>📋 Leave Instructions Settings</h3>
+
+<input type="text" id="leaveName" placeholder="Leave Name (e.g. Casual Leave)">
+<input type="text" id="leaveCode" placeholder="Code (CL, EL, SL)">
+<input type="text" id="leaveDays" placeholder="Days per year">
+
+<textarea id="leaveRules" placeholder="Enter full rules..."></textarea>
+
+<button onclick="saveLeaveInstruction()">Save Instruction</button>
+
+<hr>
+
+<div id="leaveList"></div>
 
 </div>
 
