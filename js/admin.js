@@ -1,3 +1,6 @@
+let leaveCount = {}
+let userMap = {}
+
 // ===============================
 // CHECK ADMIN LOGIN (SECURE)
 // ===============================
@@ -69,47 +72,72 @@ loadNotifications(user)
 
 async function autoResetLeaveCycle(){
 
-const settingsRef = db.collection("leave_settings").doc("cycle")
-const doc = await settingsRef.get()
+  const settingsRef = db.collection("leave_settings").doc("cycle")
+  const docSnap = await settingsRef.get()
 
-if(!doc.exists) return
+  if(!docSnap.exists) return
 
-let data = doc.data()
+  let data = docSnap.data()
 
-let startMonth = parseInt(data.startMonth)
-let lastResetYear = data.lastResetYear || 0
+  let startMonth = parseInt(data.startMonth)
+  let lastResetYear = data.lastResetYear || 0
 
-let today = new Date()
-let currentMonth = today.getMonth()+1
-let currentYear = today.getFullYear()
+  let today = new Date()
+  let currentMonth = today.getMonth() + 1
+  let currentYear = today.getFullYear()
 
-if(currentMonth === startMonth && lastResetYear !== currentYear){
+  // ✅ Run only once per year
+  if(currentMonth === startMonth && lastResetYear !== currentYear){
 
-const users = await db.collection("users")
-.where("role","==","employee")
-.get()
+    // 🔥 STEP 1: Get all leave types
+    const leaveTypesSnapshot = await db.collection("leave_types").get()
 
-for(const user of users.docs){
+    // 🔥 STEP 2: Get all employees
+    const users = await db.collection("users")
+      .where("role","==","employee")
+      .get()
 
-await db.collection("users").doc(user.id).update({
+    // 🔥 STEP 3: Update each user
+    for(const user of users.docs){
 
-leave_balance:{
-"Casual Leave":10,
-"Sick Leave":10,
-"Earned Leave":10
-}
+      let oldBalance = user.data().leave_balance || {}
 
-})
+      let newBalance = {}
 
-}
+      leaveTypesSnapshot.forEach(doc=>{
+        let d = doc.data()
 
-await settingsRef.update({
-lastResetYear: currentYear
-})
+        let name = d.name
+        let max = parseInt(d.max_days) || 0
 
-alert("All employee leaves reset for new cycle")
+        let carry = 0
 
-}
+        // ✅ Carry Forward Logic
+        if(d.settings?.carryForward){
+          carry = Math.min(
+            oldBalance[name] || 0,
+            d.settings.carryForwardMax || 0
+          )
+        }
+
+        newBalance = {...newBalance, [name]: max + carry}
+      })
+
+      // ✅ Update user balance
+      await db.collection("users").doc(user.id).update({
+        leave_balance: newBalance
+      })
+
+    }
+
+    // 🔥 STEP 4: Save reset year
+    await settingsRef.update({
+      lastResetYear: currentYear
+    })
+
+    alert("✅ Leave balances reset with carry forward")
+
+  }
 
 }
 
@@ -198,10 +226,36 @@ if(data.status === "pending"){
 
 // 🟢 Approved
 else if(data.status === "approved"){
-    action = `
-        <button onclick="resetLeave('${doc.id}')">🔄 Reset Leave</button>
-<button onclick="deleteEmployee('${doc.id}')">🗑 Delete</button>
+
+    let toggle = `
+    <label class="switch">
+        <input type="checkbox"
+            ${data.probation === true ? "checked" : ""}
+            onchange="setProbation('${doc.id}', this.checked)">
+        <span class="slider"></span>
+    </label>
     `
+
+    action = `
+<div style="display:flex;align-items:center;gap:12px;">
+
+    <button onclick="resetLeave('${doc.id}')">🔄</button>
+
+    <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:12px;">Probation</span>
+
+        <label class="switch">
+            <input type="checkbox"
+                ${data.probation === true ? "checked" : ""}
+                onchange="setProbation('${doc.id}', this.checked)">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <button onclick="deleteEmployee('${doc.id}')">🗑</button>
+
+</div>
+`
 }
 
 // 🔴 Deleted → Restore
@@ -221,7 +275,13 @@ let row = `
 <tr>
 <td data-label="Name">${data.name}</td>
 <td data-label="Email">${data.email}</td>
-<td data-label="Status">${statusBadge}</td>
+<td data-label="Status">
+  ${statusBadge}
+  <br>
+${data.probation === true
+  ? "<span style='color:orange;'>🟡 Probation</span>"
+  : "<span style='color:green;'>🟢 Confirmed</span>"}
+</td>
 <td data-label="Action">${action}</td>
 </tr>
 `
@@ -237,14 +297,16 @@ employeeTable.innerHTML += row
 // ===============================
 // APPROVE EMPLOYEE
 // ===============================
-
 function approveEmployee(uid){
 
+if(!confirm("Approve employee and set probation?")) return
+
 db.collection("users").doc(uid).update({
-status:"approved"
+    status: "approved",
+    probation: true
 })
 .then(()=>{
-alert("Employee approved")
+    alert("Employee approved (On Probation)")
 })
 
 }
@@ -272,25 +334,25 @@ alert("Employee rejected")
 // RESET LEAVE BALANCE
 // ===============================
 
-function resetLeave(uid){
+async function resetLeave(uid){
 
 if(confirm("Reset leave balance for this employee?")){
 
-db.collection("users").doc(uid).update({
+  const leaveTypesSnapshot = await db.collection("leave_types").get()
 
-leave_balance:{
-"Casual Leave":10,
-"Sick Leave":10,
-"Earned Leave":10
+  let newBalance = {}
+
+  leaveTypesSnapshot.forEach(doc=>{
+    let d = doc.data()
+    newBalance[d.name] = parseInt(d.max_days) || 0
+  })
+
+  await db.collection("users").doc(uid).update({
+    leave_balance: newBalance
+  })
+
+  alert("Leave balance reset successfully")
 }
-
-})
-.then(()=>{
-alert("Leave balance reset successfully")
-})
-
-}
-
 }
 
 function deleteEmployee(uid){
@@ -372,17 +434,18 @@ if(data.startDate && data.endDate){
 }
 
 // 🤖 AI tracking
-leaveCount[data.name] = (leaveCount[data.name] || 0) + 1
+leaveCount[data.userId] = (leaveCount[data.userId] || 0) + 1
+userMap[data.userId] = data.name
 
 let action = ""
 let aiSuggestion = ""
 
 // 🤖 AI Suggestion
 if(totalDays <= 2){
-    aiSuggestion = `<span style="color:green;font-size:12px;">🤖 Approve Suggested</span>`
+    aiSuggestion = `<span style="color:green;font-size:12px;">✅ Safe to approve</span>`
 }
 else if(totalDays >= 5){
-    aiSuggestion = `<span style="color:red;font-size:12px;">⚠️ Review Carefully</span>`
+    aiSuggestion = `<span style="color:red;font-size:12px;">⚠️ Needs review</span>`
 }
 
 // ACTION
@@ -424,7 +487,13 @@ let row = `
 <td data-label="Start Date">${data.startDate}</td>
 <td data-label="End Date">${data.endDate}</td>
 <td data-label="Total Days">${totalDays}</td>
+
+<td data-label="Department">${data.department || "-"}</td>   <!-- ✅ NEW -->
+
 <td data-label="Reason">${data.reason}</td>
+
+<td data-label="Adjustment">${data.adjustment || "-"}</td>   <!-- ✅ NEW -->
+
 <td data-label="Status">${statusBadge}</td>
 <td data-label="Action">${action}</td>
 </tr>
@@ -454,7 +523,8 @@ for(let user in leaveCount){
 
 if(insightBox && maxUser){
     insightBox.innerText =
-    "🤖 AI Insight: " + maxUser + " has highest leave requests (" + max + ")"
+"🤖 AI Insight: " + (userMap[maxUser] || "Unknown") +
+" has highest leave requests (" + max + ")"
 }
 
 })
@@ -476,34 +546,78 @@ function calculateDays(start, end) {
 
 async function approveLeave(id){
 
-const doc = await db.collection("leaves").doc(id).get()
+const docSnap = await db.collection("leaves").doc(id).get()
+let data = docSnap.data()
 
-let data = doc.data()
+// ❌ prevent double approval
+if(data.status !== "pending"){
+  alert("Already processed")
+  return
+}
+
 
 let uid = data.userId
 let type = data.leaveType
 
-let field = `leave_balance.${type}`
+let days = calculateDays(data.startDate, data.endDate)
 
-// update balance
-await db.collection("users").doc(uid).update({
-[field]: firebase.firestore.FieldValue.increment(-1)
+// get user
+const userDoc = await db.collection("users").doc(uid).get()
+let user = userDoc.data()
+
+// 🔥 get max allowed leave
+const typeDoc = await db.collection("leave_types")
+.where("name","==",type)
+.get()
+
+let maxAllowed = 0
+typeDoc.forEach(doc=>{
+  maxAllowed = parseInt(doc.data().max_days) || 0
 })
+
+// 🔥 calculate used days
+const usedSnapshot = await db.collection("leaves")
+.where("userId","==",uid)
+.where("leaveType","==",type)
+.where("status","==","approved")
+.get()
+
+let usedDays = 0
+
+usedSnapshot.forEach(doc=>{
+  let d = doc.data()
+  usedDays += calculateDays(d.startDate, d.endDate)
+})
+
+let remaining = maxAllowed - usedDays
+
+// ❌ block if insufficient
+if(remaining < days){
+  alert("❌ Not enough leave balance")
+  return
+}
+
+if(!data.startDate || !data.endDate){
+  alert("Invalid leave data")
+  return
+}
+
+
 
 // update leave
 await db.collection("leaves").doc(id).update({
-status:"approved"
+  status:"approved"
 })
 
-// 🔔 SEND NOTIFICATION
+// notification
 await db.collection("notifications").add({
-    userId: uid,
-    role: "employee", // ✅ ADD THIS LINE
-    type: "leave_approved", // ✅ ADD THIS
-    message: "✅ Your leave has been approved",
-    read: false,
-    hidden: false,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  userId: uid,
+  role: "employee",
+  type: "leave_approved",
+  message: `✅ ${data.leaveType} leave approved (${data.startDate} to ${data.endDate})`,
+  read: false,
+  hidden: false,
+  createdAt: firebase.firestore.FieldValue.serverTimestamp()
 })
 
 }
@@ -609,10 +723,16 @@ let leavesSnapshot = await db.collection("leaves")
 .where("status","==","approved")
 .get()
 
-let used = leavesSnapshot.size
+let usedDays = 0
 
-// ✅ ADD data-label HERE (DYNAMIC)
-row += `<td data-label="${leave.name}">${used} / ${leave.max}</td>`
+leavesSnapshot.forEach(doc=>{
+  let d = doc.data()
+  usedDays += calculateDays(d.startDate, d.endDate)
+})
+
+row += `<td data-label="${leave.name}">
+  ${usedDays} / ${leave.max}
+</td>`
 
 }
 
@@ -797,5 +917,15 @@ function logout(){
 auth.signOut().then(()=>{
 window.location.href="login.html"
 })
+
+}
+function setProbation(uid, value){
+
+    db.collection("users").doc(uid).update({
+        probation: value
+    })
+    .then(()=>{
+        console.log("Probation updated:", value)
+    })
 
 }
