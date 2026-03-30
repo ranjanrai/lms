@@ -108,8 +108,11 @@ font-weight:bold;">
 <textarea id="adjustment" placeholder="Enter class adjustment details (if any)"></textarea>
 </div>
 
-<button type="button" onclick="applyLeave()" class="btn-primary">
-Submit Leave Request
+<button type="button" onclick="applyLeave()" class="btn-primary" id="submitBtn">
+    <span id="btnText">Submit Leave Request</span>
+    <span id="btnLoader" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i> Submitting...
+    </span>
 </button>
 
 </form>
