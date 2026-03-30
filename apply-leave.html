@@ -55,6 +55,17 @@
 <h2>Apply Leave</h2>
 </div>
 
+<div id="probationWarning" style="
+display:none;
+margin-bottom:15px;
+padding:10px;
+border-radius:6px;
+background:#fff3cd;
+color:#856404;
+font-weight:bold;">
+⚠ You are on probation. Leave restrictions apply.
+</div>
+
 <!-- FORM CARD -->
 
 <div class="card fade-in" style="max-width:600px;">
@@ -78,9 +89,23 @@
 </div>
 </div>
 
+
+<!-- ✅ Department (BEFORE Reason) -->
+<div class="form-group">
+<label>Department</label>
+<input type="text" id="department" placeholder="Enter your department">
+</div>
+
+<!-- Reason -->
 <div class="form-group">
 <label>Reason</label>
 <textarea id="reason" placeholder="Enter reason"></textarea>
+</div>
+
+<!-- ✅ Class Adjustment (AFTER Reason) -->
+<div class="form-group">
+<label>Class Adjustment Details</label>
+<textarea id="adjustment" placeholder="Enter class adjustment details (if any)"></textarea>
 </div>
 
 <button type="button" onclick="applyLeave()" class="btn-primary">
