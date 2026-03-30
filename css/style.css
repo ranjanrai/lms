@@ -960,3 +960,380 @@ color:red;
     background: #ffe6e6;
     border-radius: 50%;
 }
+.notif-item{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    cursor:pointer;
+}
+
+.notif-item:hover{
+    background:#f5f5f5;
+}
+li {
+    cursor: pointer;
+    padding: 8px;
+}
+
+li:hover {
+    background: #f0f0f0;
+}
+.notif-box{
+    position: absolute;
+    right: 20px;
+    top: 60px;
+    width: 260px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1000;
+    padding: 10px;
+}
+
+.notif-box ul{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.notif-box li{
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.notif-box li:hover{
+    background: #f5f5f5;
+}
+.notif-bell{
+    position: relative;
+    cursor: pointer;
+}
+
+#notifCount{
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 50%;
+}
+#notificationList li:hover{
+    background:#f5f5f5;
+}
+
+#notificationList button{
+    margin-right:5px;
+    padding:3px 6px;
+    border:none;
+    cursor:pointer;
+    border-radius:4px;
+}
+/* Bell */
+.notif-bell {
+  position: relative;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Count badge */
+#notifCount {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: red;
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 50%;
+}
+
+/* Notification box */
+.notif-box {
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  width: 300px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  overflow: hidden;
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header */
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.notif-header button {
+  border: none;
+  background: none;
+  color: #4a6cf7;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* List */
+.notif-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Item */
+.notif-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #f2f2f2;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.notif-item:hover {
+  background: #f5f7ff;
+}
+
+/* Unread */
+.notif-item.unread {
+  background: #eef2ff;
+}
+
+/* Icon */
+.notif-icon {
+  font-size: 16px;
+}
+
+/* Text */
+.notif-text {
+  font-size: 13px;
+}
+
+/* Time */
+.notif-time {
+  font-size: 10px;
+  color: gray;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {opacity:0; transform: translateY(-10px);}
+  to {opacity:1; transform: translateY(0);}
+}
+
+/* 🔘 Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 45px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  background-color: #ccc;
+  border-radius: 34px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: 0.3s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+/* ON */
+input:checked + .slider {
+  background-color: #4CAF50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(23px);
+}
+
+.leave-container {
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.leave-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.leave-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  transition: 0.3s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.leave-card i {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.leave-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
+
+/* Color Themes */
+.cl { border-left: 5px solid #ff9800; }
+.el { border-left: 5px solid #4caf50; }
+.sl { border-left: 5px solid #f44336; }
+.dl { border-left: 5px solid #2196f3; }
+.ml { border-left: 5px solid #e91e63; }
+.pl { border-left: 5px solid #9c27b0; }
+
+/* Rules Box */
+.rules-box {
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 15px;
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.leave-item {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.leave-item {
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.leave-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.days {
+  background: #e3f2fd;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.rules {
+  margin-top: 5px;
+  color: #555;
+  font-size: 13px;
+}
+.leave-actions {
+  margin-top: 8px;
+}
+
+.leave-actions button {
+  margin-right: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.leave-actions button:first-child {
+  background: #ffc107;
+}
+
+.leave-actions button:last-child {
+  background: #f44336;
+  color: white;
+}
+
+.leave-card {
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.leave-card:hover {
+  transform: translateY(-5px);
+  background: #f0f7ff;
+}
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 15% auto;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 10px;
+  animation: fadeIn 0.3s ease;
+}
+
+.close {
+  float: right;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
