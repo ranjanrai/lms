@@ -93,13 +93,13 @@ async function applyLeave() {
     const leaveType = document.getElementById("leaveType").value;
     const startDate = document.getElementById("startDate").value;
     const endDate = document.getElementById("endDate").value;
-    const reason = document.getElementById("reason").value;
+   const department = document.getElementById("department").value;
+const reason = document.getElementById("reason").value;
+const adjustment = document.getElementById("adjustment").value;
+    
+    
 
-    // ===========================
-    // VALIDATION
-    // ===========================
-
-    if (!leaveType || !startDate || !endDate || !reason) {
+    if (!leaveType || !startDate || !endDate || !reason || !department) {
         alert("Please fill all fields");
         return;
     }
@@ -110,7 +110,6 @@ async function applyLeave() {
     }
 
     const user = auth.currentUser;
-
     if (!user) {
         alert("User not logged in");
         return;
@@ -119,21 +118,31 @@ async function applyLeave() {
     try {
 
         // ===========================
-        // GET USER DATA
+        // GET USER
         // ===========================
 
         const userDoc = await db.collection("users").doc(user.uid).get();
-
-        if (!userDoc.exists) {
-            alert("User record not found");
-            return;
-        }
-
         const userData = userDoc.data();
 
+        // ===========================
+// PROBATION WARNING
+// ===========================
+
+const warning = document.getElementById("probationWarning")
+
+if(userData.probation === true){
+    if(warning) warning.style.display = "block"
+}else{
+    if(warning) warning.style.display = "none"
+}
+
+// safety
+if(userData.probation === undefined){
+    userData.probation = false
+}
 
         // ===========================
-        // GET LEAVE TYPE LIMIT
+        // GET LEAVE TYPE + SETTINGS
         // ===========================
 
         const leaveTypeSnapshot = await db.collection("leave_types")
@@ -146,14 +155,37 @@ async function applyLeave() {
         }
 
         let maxDays = 0;
+        let settings = {};
 
         leaveTypeSnapshot.forEach(doc => {
-            maxDays = Number(doc.data().max_days);
+            let data = doc.data();
+            maxDays = Number(data.max_days);
+            settings = data.settings || {};
         });
 
 
         // ===========================
-        // COUNT APPROVED LEAVES
+        // CALCULATE DAYS (EXCLUDE HOLIDAYS)
+        // ===========================
+
+        const holidays = await getHolidays();
+
+        let requestedDays = 0;
+        let current = new Date(startDate);
+
+        while (current <= new Date(endDate)) {
+            let d = current.toISOString().split("T")[0];
+
+            if (!holidays.includes(d)) {
+                requestedDays++;
+            }
+
+            current.setDate(current.getDate() + 1);
+        }
+
+
+        // ===========================
+        // USED LEAVE COUNT
         // ===========================
 
         const leavesSnapshot = await db.collection("leaves")
@@ -165,40 +197,14 @@ async function applyLeave() {
         let usedDays = 0;
 
         leavesSnapshot.forEach(doc => {
+            let l = doc.data();
 
-            let leave = doc.data();
+            let s = new Date(l.startDate);
+            let e = new Date(l.endDate);
 
-            let start = new Date(leave.startDate);
-            let end = new Date(leave.endDate);
-
-            let diff = (end - start) / (1000 * 60 * 60 * 24) + 1;
-
+            let diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
             usedDays += diff;
         });
-
-
-        // ===========================
-        // CALCULATE REQUEST DAYS
-        // ===========================
-
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-       const holidays = await getHolidays()
-
-let requestedDays = 0
-let current = new Date(startDate)
-
-while(current <= new Date(endDate)){
-
-    let d = current.toISOString().split("T")[0]
-
-    if(!holidays.includes(d)){
-        requestedDays++
-    }
-
-    current.setDate(current.getDate() + 1)
-}
 
         if ((usedDays + requestedDays) > maxDays) {
             alert("Leave limit exceeded. Remaining: " + (maxDays - usedDays));
@@ -207,123 +213,182 @@ while(current <= new Date(endDate)){
 
 
         // ===========================
-        // CHECK MONTHLY LIMIT
+        // MONTHLY LIMIT (NEW)
         // ===========================
 
-        const settingsDoc = await db.collection("leave_settings").doc("cycle").get();
+        if (settings.monthlyEnabled) {
 
-        if (settingsDoc.exists) {
+            let month = new Date(startDate).getMonth();
+            let year = new Date(startDate).getFullYear();
 
-            let settings = settingsDoc.data();
+            const monthlySnapshot = await db.collection("leaves")
+                .where("userId", "==", user.uid)
+                .where("leaveType", "==", leaveType)
+                .get();
 
-            if (settings.monthlyLimitEnabled) {
+            let monthlyDays = 0;
 
-                let month = start.getMonth();
-                let year = start.getFullYear();
+            monthlySnapshot.forEach(doc => {
 
-                const monthlySnapshot = await db.collection("leaves")
-                    .where("userId", "==", user.uid)
-                    .get();
+                let leave = doc.data();
+                let leaveStart = new Date(leave.startDate);
 
-                let monthlyDays = 0;
+                if (
+                    (leave.status === "approved" || leave.status === "pending") &&
+                    leaveStart.getMonth() === month &&
+                    leaveStart.getFullYear() === year
+                ) {
 
-                monthlySnapshot.forEach(doc => {
+                    let s = new Date(leave.startDate);
+                    let e = new Date(leave.endDate);
 
-                    let leave = doc.data();
-
-                    let leaveStart = new Date(leave.startDate);
-
-                    if (
-                        (leave.status === "approved" || leave.status === "pending") &&
-                        leaveStart.getMonth() === month &&
-                        leaveStart.getFullYear() === year
-                    ) {
-
-                        let s = new Date(leave.startDate);
-                        let e = new Date(leave.endDate);
-
-                        let diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
-
-                        monthlyDays += diff;
-                    }
-
-                });
-
-                if ((monthlyDays + requestedDays) > settings.monthlyLimit) {
-                    alert("Monthly leave limit exceeded");
-                    return;
+                    let diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
+                    monthlyDays += diff;
                 }
 
-            }
+            });
 
+            if ((monthlyDays + requestedDays) > settings.monthlyLimit) {
+                alert("Monthly limit exceeded for this leave type");
+                return;
+            }
         }
 
 
         // ===========================
-        // SAVE LEAVE REQUEST
+        // ADVANCE APPLY RULE
         // ===========================
 
-        await db.collection("leaves").add({
+        if (settings.advanceEnabled) {
 
-            userId: user.uid,
-            name: userData.name,
-            email: userData.email,
-            leaveType: leaveType,
-            startDate: startDate,
-            endDate: endDate,
-            reason: reason,
-            status: "pending",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            let today = new Date();
+            let start = new Date(startDate);
+
+            let diffDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < settings.advanceDays) {
+                alert(`Apply at least ${settings.advanceDays} days in advance`);
+                return;
+            }
+        }
+
+
+        // ===========================
+        // AFTER 1 YEAR RULE
+        // ===========================
+
+        if (settings.after1YearOnly) {
+
+            let joinDate = new Date(userData.createdAt?.toDate?.() || userData.createdAt);
+            let today = new Date();
+
+            let diffYears = (today - joinDate) / (1000 * 60 * 60 * 24 * 365);
+
+            if (diffYears < 1) {
+                alert("This leave is allowed only after 1 year of service");
+                return;
+            }
+        }
+
+// ===========================
+// PROBATION CHECK (FINAL)
+// ===========================
+
+if(userData.probation){
+
+    let probationLimit = settings.probationLimit ?? 0
+
+    // ❌ Not allowed at all
+    if(probationLimit === 0){
+        alert(`❌ ${leaveType} not allowed during probation`)
+        return
+    }
+
+    // count used + pending leaves
+    const snapshot = await db.collection("leaves")
+        .where("userId", "==", user.uid)
+        .where("leaveType", "==", leaveType)
+        .get()
+
+    let used = 0
+
+    snapshot.forEach(doc => {
+        let d = doc.data()
+
+        if(d.status === "approved" || d.status === "pending"){
+
+            let s = new Date(d.startDate)
+            let e = new Date(d.endDate)
+
+            let diff = (e - s) / (1000 * 60 * 60 * 24) + 1
+            used += diff
+        }
+    })
+
+    if((used + requestedDays) > probationLimit){
+        alert(`❌ Only ${probationLimit} days allowed for ${leaveType} during probation`)
+        return
+    }
+}
+
+
+        // ===========================
+        // SAVE LEAVE
+        // ===========================
+
+      await db.collection("leaves").add({
+
+    userId: user.uid,
+    name: userData.name,
+    email: userData.email,
+
+    leaveType: leaveType,
+    startDate: startDate,
+    endDate: endDate,
+
+    department: department,        // ✅ NEW
+    reason: reason,
+    adjustment: adjustment,        // ✅ NEW
+
+    status: "pending",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+});
+
+
+        // ===========================
+        // ADMIN NOTIFICATION
+        // ===========================
+
+        const adminSnapshot = await db.collection("users")
+            .where("role", "==", "admin")
+            .get();
+
+        adminSnapshot.forEach(admin => {
+
+            db.collection("notifications").add({
+
+                type: "leave_request",
+                title: "New Leave Request",
+                message: userData.name + " applied for " + leaveType,
+                userId: admin.id,
+                role: "admin",
+                read: false,
+                hidden: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+            });
 
         });
 
 
-        // ===========================
-        // CREATE ADMIN NOTIFICATION
-        // ===========================
-
-   // ===========================
-// CREATE ADMIN NOTIFICATION
-// ===========================
-
-const adminSnapshot = await db.collection("users")
-.where("role","==","admin")
-.get()
-
-adminSnapshot.forEach(admin => {
-
-    db.collection("notifications").add({
-
-        type: "leave_request",
-        title: "New Leave Request",
-        message: userData.name + " applied for " + leaveType,
-
-        userId: admin.id, // ✅ SEND TO ADMIN
-        role: "admin", // ✅ VERY IMPORTANT
-
-        read: false,
-        hidden: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-
-    })
-
-})
-
-
-        // ===========================
-        // SUCCESS
-        // ===========================
-
-        alert("Leave request submitted successfully");
+        alert("✅ Leave request submitted successfully");
         document.getElementById("leaveForm").reset();
 
     } catch (error) {
-
         console.error(error);
         alert("Error: " + error.message);
-
     }
-
 }
 
 
