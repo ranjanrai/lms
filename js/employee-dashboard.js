@@ -1,3 +1,5 @@
+
+
 // =============================
 // CHECK LOGIN
 // =============================
@@ -23,6 +25,42 @@ if(!doc.exists){
 
 const data = doc.data()
 
+// ============================
+// PROBATION STATUS
+// ============================
+
+const banner = document.getElementById("probationBanner")
+
+if(data.probation === true){
+
+    banner.style.display = "block"
+    banner.style.background = "#fff3cd"
+    banner.style.color = "#856404"
+    banner.innerHTML = "🟡 You are currently on probation. Leave limits may apply."
+
+}else{
+
+    banner.style.display = "block"
+    banner.style.background = "#d4edda"
+    banner.style.color = "#155724"
+    banner.innerHTML = "🟢 You are a confirmed employee."
+
+}
+
+if(data.probation === true){
+
+    banner.style.display = "block"
+    banner.style.background = "#fff3cd"
+    banner.style.color = "#856404"
+    banner.innerHTML = "🟡 You are on probation. Leave limits apply."
+
+}else{
+    banner.style.display = "none"
+}
+if(data.probation === undefined){
+    data.probation = false
+}
+
 // 🚫 BLOCK NON-EMPLOYEE
 if(data.role !== "employee"){
     alert("Access denied")
@@ -44,6 +82,11 @@ const uid = user.uid
 
 loadDashboard(uid)
 loadLeaveBalance(uid)
+// ✅ ADD THESE HERE
+loadNotifications(uid)
+loadNotificationCount(uid)
+// ✅ ADD THIS
+loadLeaveInstructions()
 
 })
 
@@ -84,11 +127,19 @@ if(data.status === "approved"){
 approved++
 }
 
+let start = new Date(data.startDate)
+let end = new Date(data.endDate)
+
+// calculate days
+let diffTime = end - start
+let days = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+
 let row = `
 <tr>
 <td>${data.leaveType}</td>
 <td>${data.startDate}</td>
 <td>${data.endDate}</td>
+<td>${days}</td>   <!-- ✅ SHOW DAYS -->
 <td>${data.status}</td>
 </tr>
 `
@@ -158,76 +209,166 @@ table.innerHTML += row
 })
 
 }
-function loadNotifications(){
+
+function loadNotifications(uid){
 
     const list = document.getElementById("notificationList")
+    const countEl = document.getElementById("notifCount")
 
-    auth.onAuthStateChanged(user => {
+    if(!list) return
 
-        if(!user) return
+    db.collection("notifications")
+.where("userId", "==", uid)
+.orderBy("createdAt", "desc")
+.onSnapshot(snapshot => {
 
-        db.collection("notifications")
-        .where("userId", "==", user.uid)
-        .orderBy("createdAt", "desc")
-        .onSnapshot(snapshot => {
+        list.innerHTML = ""
 
-            list.innerHTML = ""
+        let unreadCount = 0
 
-            snapshot.forEach(doc => {
+        if(snapshot.empty){
+            list.innerHTML = "<div class='empty'>No notifications</div>"
+            if(countEl) countEl.textContent = 0
+            return
+        }
 
-                let data = doc.data()
+        snapshot.forEach(doc => {
 
-                let li = document.createElement("li")
-                li.className = "notification-item"
+            let data = doc.data()
 
-            li.innerHTML = `
-    <div class="notif-left">
-        <span>${data.message}</span>
-        <small>
-            ${data.createdAt 
-                ? data.createdAt.toDate().toLocaleString() 
-                : ""}
-        </small>
-    </div>
+            if(data.hidden) return
 
-    <button class="delete-btn" onclick="deleteNotification('${doc.id}', event)">
-        <i class="fa fa-trash"></i>
-    </button>
-`
+            if(!data.read) unreadCount++
 
-                // unread bold
-                if(data.status === "unread"){
-                    li.style.fontWeight = "bold"
-                }
+            let item = document.createElement("div")
+            item.className = "notif-item " + (!data.read ? "unread" : "")
 
-                // mark as read
-                li.addEventListener("click", () => {
-                    db.collection("notifications").doc(doc.id).update({
-                        status: "read"
-                    })
-                })
+            item.innerHTML = `
+                <div class="notif-icon">
+                    ${data.read ? "✅" : "🔔"}
+                </div>
 
-                list.appendChild(li)
-            })
+                <div class="notif-content">
+                    <div class="notif-text">${data.message}</div>
+                    <div class="notif-time">${formatTime(data.createdAt)}</div>
+                </div>
+
+                <div class="notif-delete" title="Delete">🗑</div>
+            `
+
+            // ✅ MARK AS READ
+            item.onclick = () => {
+                db.collection("notifications")
+                .doc(doc.id)
+                .update({ read: true })
+            }
+
+            // ✅ DELETE BUTTON (FIXED)
+            const deleteBtn = item.querySelector(".notif-delete")
+
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation() // ❗ prevent mark as read
+
+                // optional animation
+                item.style.opacity = "0"
+                item.style.transform = "translateX(20px)"
+
+                setTimeout(() => {
+                    db.collection("notifications")
+                    .doc(doc.id)
+                    .delete()
+                }, 200)
+            }
+
+            list.appendChild(item)
         })
+
+        // ✅ UPDATE BADGE
+        if(countEl){
+            countEl.textContent = unreadCount
+            countEl.style.display = unreadCount > 0 ? "inline-block" : "none"
+        }
+
     })
 }
-function loadNotificationCount(){
+function formatTime(timestamp){
+
+    if(!timestamp) return ""
+
+    const now = new Date()
+    const time = timestamp.toDate()
+    const diff = Math.floor((now - time) / 1000)
+
+    if(diff < 60) return "Just now"
+    if(diff < 3600) return Math.floor(diff/60) + " min ago"
+    if(diff < 86400) return Math.floor(diff/3600) + " hrs ago"
+
+    return time.toLocaleDateString()
+}
+function markAllRead(){
+
+  auth.onAuthStateChanged(user => {
+
+    if(!user) return
+
+    db.collection("notifications")
+      .where("userId", "==", user.uid)
+      .where("read", "==", false)
+      .get()
+      .then(snapshot => {
+
+        snapshot.forEach(doc => {
+          doc.ref.update({ read: true })
+        })
+
+      })
+  })
+}
+
+function loadNotificationCount(uid){
 
     const countEl = document.getElementById("notifCount")
 
-    auth.onAuthStateChanged(user => {
+    db.collection("notifications")
+    .where("userId", "==", uid)
+    .onSnapshot(snapshot => {
 
-        if(!user) return
+        let count = 0
 
-        db.collection("notifications")
-        .where("userId", "==", user.uid)
-        .where("status", "==", "unread")
-        .onSnapshot(snapshot => {
-            countEl.textContent = snapshot.size
+        snapshot.forEach(doc => {
+            let data = doc.data()
+
+            if(data.hidden) return     // ❌ skip hidden
+            if(!data.read) count++     // ✅ count only unread
         })
+
+        countEl.textContent = count > 99 ? "99+" : count
+        countEl.style.display = count > 0 ? "inline-block" : "none"
     })
 }
+
+function markAsRead(id, e){
+    e.stopPropagation()
+
+    db.collection("notifications").doc(id).update({
+        read: true
+    })
+}
+function hideNotification(id, e){
+    e.stopPropagation()
+
+    db.collection("notifications").doc(id).update({
+        hidden: true
+    })
+}
+function deleteNotification(id, e){
+    e.stopPropagation()
+
+    if(!confirm("Delete this notification?")) return
+
+    db.collection("notifications").doc(id).delete()
+}
+
 function toggleNotifBox(){
 
     const box = document.getElementById("notifBox")
@@ -238,29 +379,84 @@ function toggleNotifBox(){
         box.style.display = "block"
     }
 }
-document.addEventListener("DOMContentLoaded", () => {
-    loadNotifications()
-    loadNotificationCount()
-})
-function deleteNotification(id, e){
 
-    e.stopPropagation() // stop click conflict
 
-    if(!confirm("Delete this notification?")) return
+// =============================
+// LOAD LEAVE INSTRUCTIONS
+// =============================
+function loadLeaveInstructions(){
 
-    const item = e.target.closest("li")
+  const container = document.getElementById("leaveInstructions")
 
-    if(item){
-        item.style.opacity = "0.5"
+  if(!container) return
+
+  container.innerHTML = "<p>Loading...</p>"
+
+  db.collection("leave_instructions")
+  .orderBy("createdAt", "asc")
+  .get()
+  .then(snapshot => {
+
+    if(snapshot.empty){
+      container.innerHTML = "<p>No leave instructions available</p>"
+      return
     }
 
-    db.collection("notifications")
-    .doc(id)
-    .delete()
-    .then(()=>{
-        console.log("Deleted")
+    container.innerHTML = ""
+
+    snapshot.forEach(doc => {
+
+      const data = doc.data()
+
+      container.innerHTML += `
+        <div class="leave-card" data-rules="${data.rules}">
+          <h3>${data.code}</h3>
+          <p>${data.name}</p>
+          <span>${data.days} days/year</span>
+        </div>
+      `
+
     })
-    .catch(error=>{
-        console.log(error)
-    })
+
+    attachLeaveClick()
+
+  })
+
+}
+function attachLeaveClick(){
+
+  document.querySelectorAll(".leave-card").forEach(card => {
+
+    card.onclick = () => {
+
+      const rules = card.getAttribute("data-rules")
+      const title = card.querySelector("h3").innerText
+
+      const titleEl = document.getElementById("modalTitle")
+if(titleEl) titleEl.innerText = title
+
+      // 🔥 Format rules nicely
+      document.getElementById("modalBody").innerHTML = `
+        <p style="white-space:pre-line;">${rules}</p>
+      `
+
+      document.getElementById("leaveModal").style.display = "block"
+
+    }
+
+  })
+
+}
+function closeLeaveModal(){
+  const modal = document.getElementById("leaveModal")
+  if(modal){
+    modal.style.display = "none"
+  }
+}
+
+window.onclick = function(event){
+  const modal = document.getElementById("leaveModal")
+  if(event.target === modal){
+    modal.style.display = "none"
+  }
 }
