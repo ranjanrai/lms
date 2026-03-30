@@ -83,6 +83,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
+function showToast(message, type="error") {
+
+    let toast = document.createElement("div")
+    toast.innerText = message
+
+    toast.style.position = "fixed"
+    toast.style.top = "20px"
+    toast.style.right = "20px"
+    toast.style.padding = "12px 20px"
+    toast.style.borderRadius = "6px"
+    toast.style.color = "#fff"
+    toast.style.zIndex = "9999"
+
+    toast.style.background = type === "success" ? "#28a745" : "#dc3545"
+
+    document.body.appendChild(toast)
+
+    setTimeout(() => toast.remove(), 3000)
+}
+
+
 
 // ===========================
 // APPLY LEAVE
@@ -93,26 +114,37 @@ async function applyLeave() {
     const leaveType = document.getElementById("leaveType").value;
     const startDate = document.getElementById("startDate").value;
     const endDate = document.getElementById("endDate").value;
-   const department = document.getElementById("department").value;
-const reason = document.getElementById("reason").value;
-const adjustment = document.getElementById("adjustment").value;
-    
-    
+    const department = document.getElementById("department").value;
+    const reason = document.getElementById("reason").value;
+    const adjustment = document.getElementById("adjustment").value;
+
+    const btn = document.getElementById("submitBtn")
+    const btnText = document.getElementById("btnText")
+    const btnLoader = document.getElementById("btnLoader")
+
+    // 🔄 Start loading
+    btn.disabled = true
+    btnText.style.display = "none"
+    btnLoader.style.display = "inline"
+
+    // ===========================
+    // BASIC VALIDATION
+    // ===========================
 
     if (!leaveType || !startDate || !endDate || !reason || !department) {
-        alert("Please fill all fields");
-        return;
+        showToast("⚠ Please fill all required fields")
+        return resetButton()
     }
 
     if (new Date(endDate) < new Date(startDate)) {
-        alert("End date cannot be before start date");
-        return;
+        showToast("End date cannot be before start date")
+        return resetButton()
     }
 
     const user = auth.currentUser;
     if (!user) {
-        alert("User not logged in");
-        return;
+        showToast("User not logged in")
+        return resetButton()
     }
 
     try {
@@ -124,25 +156,20 @@ const adjustment = document.getElementById("adjustment").value;
         const userDoc = await db.collection("users").doc(user.uid).get();
         const userData = userDoc.data();
 
-        // ===========================
-// PROBATION WARNING
-// ===========================
+        const warning = document.getElementById("probationWarning")
 
-const warning = document.getElementById("probationWarning")
+        if(userData.probation === true){
+            if(warning) warning.style.display = "block"
+        } else {
+            if(warning) warning.style.display = "none"
+        }
 
-if(userData.probation === true){
-    if(warning) warning.style.display = "block"
-}else{
-    if(warning) warning.style.display = "none"
-}
-
-// safety
-if(userData.probation === undefined){
-    userData.probation = false
-}
+        if(userData.probation === undefined){
+            userData.probation = false
+        }
 
         // ===========================
-        // GET LEAVE TYPE + SETTINGS
+        // GET LEAVE TYPE
         // ===========================
 
         const leaveTypeSnapshot = await db.collection("leave_types")
@@ -150,8 +177,8 @@ if(userData.probation === undefined){
             .get();
 
         if (leaveTypeSnapshot.empty) {
-            alert("Leave type not found");
-            return;
+            showToast("Leave type not found")
+            return resetButton()
         }
 
         let maxDays = 0;
@@ -163,9 +190,8 @@ if(userData.probation === undefined){
             settings = data.settings || {};
         });
 
-
         // ===========================
-        // CALCULATE DAYS (EXCLUDE HOLIDAYS)
+        // CALCULATE DAYS
         // ===========================
 
         const holidays = await getHolidays();
@@ -183,9 +209,8 @@ if(userData.probation === undefined){
             current.setDate(current.getDate() + 1);
         }
 
-
         // ===========================
-        // USED LEAVE COUNT
+        // USED LEAVES
         // ===========================
 
         const leavesSnapshot = await db.collection("leaves")
@@ -198,22 +223,19 @@ if(userData.probation === undefined){
 
         leavesSnapshot.forEach(doc => {
             let l = doc.data();
-
             let s = new Date(l.startDate);
             let e = new Date(l.endDate);
 
-            let diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
-            usedDays += diff;
+            usedDays += (e - s) / (1000 * 60 * 60 * 24) + 1;
         });
 
         if ((usedDays + requestedDays) > maxDays) {
-            alert("Leave limit exceeded. Remaining: " + (maxDays - usedDays));
-            return;
+            showToast(`Leave limit exceeded. Remaining: ${maxDays - usedDays}`)
+            return resetButton()
         }
 
-
         // ===========================
-        // MONTHLY LIMIT (NEW)
+        // MONTHLY LIMIT
         // ===========================
 
         if (settings.monthlyEnabled) {
@@ -229,7 +251,6 @@ if(userData.probation === undefined){
             let monthlyDays = 0;
 
             monthlySnapshot.forEach(doc => {
-
                 let leave = doc.data();
                 let leaveStart = new Date(leave.startDate);
 
@@ -238,25 +259,20 @@ if(userData.probation === undefined){
                     leaveStart.getMonth() === month &&
                     leaveStart.getFullYear() === year
                 ) {
-
                     let s = new Date(leave.startDate);
                     let e = new Date(leave.endDate);
-
-                    let diff = (e - s) / (1000 * 60 * 60 * 24) + 1;
-                    monthlyDays += diff;
+                    monthlyDays += (e - s) / (1000 * 60 * 60 * 24) + 1;
                 }
-
             });
 
             if ((monthlyDays + requestedDays) > settings.monthlyLimit) {
-                alert("Monthly limit exceeded for this leave type");
-                return;
+                showToast("Monthly limit exceeded")
+                return resetButton()
             }
         }
 
-
         // ===========================
-        // ADVANCE APPLY RULE
+        // ADVANCE RULE
         // ===========================
 
         if (settings.advanceEnabled) {
@@ -267,14 +283,13 @@ if(userData.probation === undefined){
             let diffDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
 
             if (diffDays < settings.advanceDays) {
-                alert(`Apply at least ${settings.advanceDays} days in advance`);
-                return;
+                showToast(`Apply at least ${settings.advanceDays} days in advance`)
+                return resetButton()
             }
         }
 
-
         // ===========================
-        // AFTER 1 YEAR RULE
+        // 1 YEAR RULE
         // ===========================
 
         if (settings.after1YearOnly) {
@@ -285,76 +300,67 @@ if(userData.probation === undefined){
             let diffYears = (today - joinDate) / (1000 * 60 * 60 * 24 * 365);
 
             if (diffYears < 1) {
-                alert("This leave is allowed only after 1 year of service");
-                return;
+                showToast("Allowed only after 1 year of service")
+                return resetButton()
             }
         }
 
-// ===========================
-// PROBATION CHECK (FINAL)
-// ===========================
+        // ===========================
+        // PROBATION CHECK
+        // ===========================
 
-if(userData.probation){
+        if(userData.probation){
 
-    let probationLimit = settings.probationLimit ?? 0
+            let probationLimit = settings.probationLimit ?? 0
 
-    // ❌ Not allowed at all
-    if(probationLimit === 0){
-        alert(`❌ ${leaveType} not allowed during probation`)
-        return
-    }
+            if(probationLimit === 0){
+                showToast(`${leaveType} not allowed during probation`)
+                return resetButton()
+            }
 
-    // count used + pending leaves
-    const snapshot = await db.collection("leaves")
-        .where("userId", "==", user.uid)
-        .where("leaveType", "==", leaveType)
-        .get()
+            const snapshot = await db.collection("leaves")
+                .where("userId", "==", user.uid)
+                .where("leaveType", "==", leaveType)
+                .get()
 
-    let used = 0
+            let used = 0
 
-    snapshot.forEach(doc => {
-        let d = doc.data()
+            snapshot.forEach(doc => {
+                let d = doc.data()
 
-        if(d.status === "approved" || d.status === "pending"){
+                if(d.status === "approved" || d.status === "pending"){
+                    let s = new Date(d.startDate)
+                    let e = new Date(d.endDate)
+                    used += (e - s) / (1000 * 60 * 60 * 24) + 1
+                }
+            })
 
-            let s = new Date(d.startDate)
-            let e = new Date(d.endDate)
-
-            let diff = (e - s) / (1000 * 60 * 60 * 24) + 1
-            used += diff
+            if((used + requestedDays) > probationLimit){
+                showToast(`Only ${probationLimit} days allowed during probation`)
+                return resetButton()
+            }
         }
-    })
-
-    if((used + requestedDays) > probationLimit){
-        alert(`❌ Only ${probationLimit} days allowed for ${leaveType} during probation`)
-        return
-    }
-}
-
 
         // ===========================
-        // SAVE LEAVE
+        // SAVE
         // ===========================
 
-      await db.collection("leaves").add({
+        await db.collection("leaves").add({
 
-    userId: user.uid,
-    name: userData.name,
-    email: userData.email,
+            userId: user.uid,
+            name: userData.name,
+            email: userData.email,
 
-    leaveType: leaveType,
-    startDate: startDate,
-    endDate: endDate,
+            leaveType,
+            startDate,
+            endDate,
+            department,
+            reason,
+            adjustment,
 
-    department: department,        // ✅ NEW
-    reason: reason,
-    adjustment: adjustment,        // ✅ NEW
-
-    status: "pending",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-
-});
-
+            status: "pending",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
         // ===========================
         // ADMIN NOTIFICATION
@@ -365,32 +371,37 @@ if(userData.probation){
             .get();
 
         adminSnapshot.forEach(admin => {
-
             db.collection("notifications").add({
-
                 type: "leave_request",
                 title: "New Leave Request",
-                message: userData.name + " applied for " + leaveType,
+                message: `${userData.name} applied for ${leaveType}`,
                 userId: admin.id,
                 role: "admin",
                 read: false,
                 hidden: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-
             });
-
         });
 
-
-        alert("✅ Leave request submitted successfully");
-        document.getElementById("leaveForm").reset();
+        showToast("✅ Leave submitted successfully", "success")
+        document.getElementById("leaveForm").reset()
 
     } catch (error) {
-        console.error(error);
-        alert("Error: " + error.message);
+        console.error(error)
+        showToast("❌ " + error.message)
     }
-}
 
+    resetButton()
+}
+function resetButton(){
+    const btn = document.getElementById("submitBtn")
+    const btnText = document.getElementById("btnText")
+    const btnLoader = document.getElementById("btnLoader")
+
+    btn.disabled = false
+    btnText.style.display = "inline"
+    btnLoader.style.display = "none"
+}
 
 // ===========================
 // AUTH SESSION CHECK
