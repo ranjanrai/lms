@@ -8,6 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
 
@@ -105,7 +106,20 @@ font-size:22px;
 
 <input type="email" id="email" placeholder="Enter Email">
 
-<input type="password" id="password" placeholder="Enter Password">
+<div style="position:relative;">
+    <input type="password" id="password" placeholder="Enter Password">
+    <span onclick="togglePassword()" id="toggleIcon" style="
+position:absolute;
+right:10px;
+top:50%;
+transform:translateY(-50%);
+cursor:pointer;
+color:#555;
+">
+<i class="fa fa-eye"></i>
+</span>
+</div>
+
 <div id="message" style="
     display:none;
     margin-top:10px;
@@ -119,7 +133,12 @@ font-size:22px;
     <a href="forgot-password.html">Forgot Password?</a>
 </p>
 
-<button onclick="login()">Login</button>
+<button id="loginBtn" onclick="login()">
+    <span id="btnText">Login</span>
+    <span id="loader" style="display:none;">
+    <i class="fa fa-spinner fa-spin"></i>
+</span>
+</button>
 
 <a class="register" href="register.html">
 Create new account
