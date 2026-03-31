@@ -45,18 +45,36 @@ alert(error.message)
 
 
 function showMessage(text, type){
-    const msg = document.getElementById("message");
 
-    msg.style.display = "block";
-    msg.innerText = text;
+    const msg = document.getElementById("message")
+    const email = document.getElementById("email")
+    const password = document.getElementById("password")
+
+    msg.style.display = "block"
+
+    // reset input styles
+    email.classList.remove("input-error")
+    password.classList.remove("input-error")
+
+    let icon = ""
 
     if(type === "error"){
-        msg.style.background = "#ffe5e5";
-        msg.style.color = "#d8000c";
-    } else {
-        msg.style.background = "#e6ffed";
-        msg.style.color = "#2e7d32";
+        msg.style.background = "#ffe5e5"
+        msg.style.color = "#d8000c"
+        icon = '<i class="fa fa-times-circle"></i> '
+
+    }else if(type === "success"){
+        msg.style.background = "#e6ffed"
+        msg.style.color = "#2e7d32"
+        icon = '<i class="fa fa-check-circle"></i> '
+
+    }else if(type === "warning"){
+        msg.style.background = "#fff4e5"
+        msg.style.color = "#ff9800"
+        icon = '<i class="fa fa-exclamation-triangle"></i> '
     }
+
+    msg.innerHTML = icon + text
 }
 
 // ===========================
@@ -65,14 +83,27 @@ function showMessage(text, type){
 
 function login(){
 
-let email = document.getElementById("email").value.trim()
-let password = document.getElementById("password").value.trim()
+let emailInput = document.getElementById("email")
+let passwordInput = document.getElementById("password")
+
+let email = emailInput.value.trim()
+let password = passwordInput.value.trim()
+
+// reset error styles
+emailInput.classList.remove("input-error")
+passwordInput.classList.remove("input-error")
 
 // validation
 if(email === "" || password === ""){
-    showMessage("?? Please enter email and password", "error")
+    showMessage("Please enter email and password", "warning")
+
+    if(email === "") emailInput.classList.add("input-error")
+    if(password === "") passwordInput.classList.add("input-error")
+
     return
 }
+
+setLoading(true)
 
 auth.signInWithEmailAndPassword(email,password)
 
@@ -85,7 +116,8 @@ db.collection("users").doc(uid).get()
 .then((doc)=>{
 
 if(!doc.exists){
-    showMessage("? User record not found", "error")
+    showMessage("User record not found", "error")
+    setLoading(false)
     return
 }
 
@@ -93,13 +125,14 @@ let data = doc.data()
 
 // check approval
 if(data.status !== "approved"){
-    showMessage("? Your account is pending admin approval", "error")
+   showMessage("Your account is pending admin approval", "warning")
     auth.signOut()
+    setLoading(false)
     return
 }
 
-// success message
-showMessage("? Login successful! Redirecting...", "success")
+// success
+showMessage("Login successful! Redirecting...", "success")
 
 setTimeout(()=>{
 
@@ -109,7 +142,7 @@ if(data.role === "admin"){
     window.location="employee-dashboard.html"
 }
 
-},1500)
+},1200)
 
 })
 
@@ -117,12 +150,14 @@ if(data.role === "admin"){
 
 .catch((error)=>{
 
+setLoading(false)
+
 let msg = ""
 
 switch(error.code){
 
 case "auth/user-not-found":
-    msg = "? No account found with this email"
+    msg = "No account found with this email"
     break
 
 case "auth/wrong-password":
@@ -134,7 +169,7 @@ case "auth/invalid-email":
     break
 
 case "auth/too-many-requests":
-    msg = "? Too many attempts. Try again later"
+    msg = "Too many attempts. Try again later"
     break
 
 default:
@@ -147,7 +182,38 @@ showMessage(msg, "error")
 
 }
 
+function togglePassword(){
 
+    const password = document.getElementById("password")
+    const icon = document.getElementById("toggleIcon").querySelector("i")
+
+    if(password.type === "password"){
+        password.type = "text"
+        icon.classList.remove("fa-eye")
+        icon.classList.add("fa-eye-slash")
+    }else{
+        password.type = "password"
+        icon.classList.remove("fa-eye-slash")
+        icon.classList.add("fa-eye")
+    }
+}
+
+function setLoading(state){
+
+    const btn = document.getElementById("loginBtn")
+    const text = document.getElementById("btnText")
+    const loader = document.getElementById("loader")
+
+    if(state){
+        btn.classList.add("loading")
+        text.style.display = "none"
+        loader.style.display = "inline"
+    }else{
+        btn.classList.remove("loading")
+        text.style.display = "inline"
+        loader.style.display = "none"
+    }
+}
 
 // ===========================
 // LOGOUT
