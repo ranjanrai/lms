@@ -15,9 +15,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 </head>
-
 <body>
-
 <!-- SIDEBAR -->
 
 <div class="sidebar" id="sidebar">
@@ -28,11 +26,11 @@
 <i class="fas fa-home"></i> <span>Dashboard</span>
 </a>
 
-<a href="apply-leave.html" class="menu">
+<a href="apply-leave.html" class="menu active">
 <i class="fas fa-paper-plane"></i> <span>Apply Leave</span>
 </a>
 
-<a href="leave-history.html" class="menu active">
+<a href="leave-history.html" class="menu">
 <i class="fas fa-history"></i> <span>Leave History</span>
 </a>
 
@@ -104,6 +102,17 @@ sidebar.classList.toggle("active")
 sidebar.classList.toggle("collapsed")
 }
 
+}
+// ===========================
+// LOGOUT FUNCTION
+// ===========================
+
+function logout(){
+    auth.signOut().then(()=>{
+        window.location = "login.html"
+    }).catch((error)=>{
+        alert("Logout failed: " + error.message)
+    })
 }
 
 </script>
