@@ -13,16 +13,39 @@
 <body>
 
 <!-- SIDEBAR -->
+
 <div class="sidebar" id="sidebar">
+
 <h2>LMS Admin</h2>
 
-<a href="admin-dashboard.html" class="menu"><i class="fas fa-home"></i> Dashboard</a>
-<a href="admin-leave-requests.html" class="menu"><i class="fas fa-calendar-check"></i> Leave Requests</a>
-<a href="admin-employee-approval.html" class="menu"><i class="fas fa-user-check"></i> Employee Approval</a>
-<a href="leave-types.html" class="menu active"><i class="fas fa-list"></i> Leave Types</a>
-<a href="leave-settings.html" class="menu"><i class="fas fa-cog"></i> Settings</a>
-<a href="holidays.html" class="menu"><i class="fas fa-calendar"></i> Holidays</a>
-<a href="index.html" class="menu"><i class="fas fa-sign-out-alt"></i> Logout</a>
+<a href="admin-dashboard.html" class="menu active">
+<i class="fas fa-home"></i> <span>Dashboard</span>
+</a>
+
+<a href="admin-leave-requests.html" class="menu">
+<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
+</a>
+
+<a href="admin-employee-approval.html" class="menu">
+<i class="fas fa-user-check"></i> <span>Employee Approval</span>
+</a>
+
+<a href="leave-types.html" class="menu">
+<i class="fas fa-list"></i> <span>Leave Types</span>
+</a>
+
+<a href="leave-settings.html" class="menu">
+<i class="fas fa-cog"></i> <span>Settings</span>
+</a>
+
+<a href="holidays.html" class="menu">
+<i class="fas fa-calendar"></i> <span>Holidays</span>
+</a>
+
+<a href="#" onclick="logout()" class="menu">
+<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+</a>
+
 </div>
 
 <!-- MAIN -->
@@ -136,6 +159,15 @@ sidebar.classList.toggle("active")
 sidebar.classList.toggle("collapsed")
 }
 }
+// ACTIVE MENU FIX
+const links = document.querySelectorAll(".menu");
+
+links.forEach(link => {
+link.addEventListener("click", function () {
+links.forEach(l => l.classList.remove("active"));
+this.classList.add("active");
+});
+});
 
 // ============================
 // ADD DEFAULT 7 LEAVE TYPES
