@@ -1413,3 +1413,84 @@ input::placeholder{
 #message{
     color: white;
 }
+
+/* =========================
+   LEAVE BALANCE UI
+========================= */
+
+/* CARD */
+.leave-card{
+    background: #ffffff;
+    padding: 14px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
+}
+
+/* HEADER */
+.leave-card h3{
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.leave-card p{
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 10px;
+}
+
+/* EACH LEAVE BLOCK */
+.leave-item{
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+/* TOP ROW */
+.leave-top{
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* REMAIN TEXT */
+.leave-remain{
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+}
+
+/* PROGRESS */
+.progress{
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.progress-bar{
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+/* COLORS (STRONG VISUAL) */
+.green{ background: linear-gradient(90deg,#22c55e,#16a34a); }
+.orange{ background: linear-gradient(90deg,#f59e0b,#ea580c); }
+.red{ background: linear-gradient(90deg,#ef4444,#dc2626); }
+
+/* MOBILE WIDTH FIX */
+@media(max-width:768px){
+
+.section{
+    max-width: 100%;
+}
+
+.leave-card{
+    width: 100%;
+}
+
+}
