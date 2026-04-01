@@ -157,6 +157,80 @@ Create new account
 
 <script src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
+<script>
+
+document.addEventListener("DOMContentLoaded", async ()=>{
+
+try{
+
+// ===============================
+// 🔐 ENABLE SESSION PERSISTENCE
+// ===============================
+await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+
+// ===============================
+// 🔄 AUTO LOGIN CHECK
+// ===============================
+auth.onAuthStateChanged(async (user)=>{
+
+if(!user){
+    console.log("No user logged in")
+    return
+}
+
+try{
+
+    console.log("Logged in user:", user.email)
+
+    const doc = await db.collection("users").doc(user.uid).get()
+
+    if(!doc.exists){
+        console.log("User record not found")
+        await auth.signOut()
+        return
+    }
+
+    const data = doc.data()
+
+    console.log("Role:", data.role)
+    console.log("Status:", data.status)
+
+    // ===============================
+    // ❌ BLOCK INVALID USERS
+    // ===============================
+    if(data.status !== "approved"){
+        console.log("User not approved")
+        await auth.signOut()
+        return
+    }
+
+    // ===============================
+    // 🚀 ROLE-BASED REDIRECT
+    // ===============================
+    if(data.role === "admin"){
+        window.location.href = "admin-dashboard.html"
+    }
+    else if(data.role === "employee"){
+        window.location.href = "employee-dashboard.html"
+    }
+    else{
+        console.log("Invalid role")
+        await auth.signOut()
+    }
+
+}catch(error){
+    console.error("Auth error:", error)
+}
+
+})
+
+}catch(error){
+    console.error("Initialization error:", error)
+}
+
+})
+
+</script>
 
 </body>
 
