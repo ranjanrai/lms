@@ -679,69 +679,164 @@ async function loadLeaveBalance(){
 
 const header = document.getElementById("leaveHeader")
 const table = document.getElementById("leaveBalanceTable")
-if(!header || !table) return   // ✅ IMPORTANT
+const cards = document.getElementById("leaveBalanceCards")
+
+if(!header || !table) return
 
 header.innerHTML = `<th>Employee</th><th>Email</th>`
+table.innerHTML = ""
+if(cards) cards.innerHTML = ""
 
+// ===============================
+// 1. GET LEAVE TYPES
+// ===============================
 const leaveTypesSnapshot = await db.collection("leave_types").get()
 
 let leaveTypes = []
 
 leaveTypesSnapshot.forEach(doc=>{
-let data = doc.data()
+    const data = doc.data()
 
-leaveTypes.push({
-name: data.name,
-max: parseInt(data.max_days)
+    const leave = {
+        name: data.name,
+        max: parseInt(data.max_days) || 0
+    }
+
+    leaveTypes.push(leave)
+
+    header.innerHTML += `<th>${leave.name}</th>`
 })
 
-header.innerHTML += `<th>${data.name}</th>`
-})
-
+// ===============================
+// 2. GET USERS
+// ===============================
 const usersSnapshot = await db.collection("users")
 .where("role","==","employee")
 .get()
 
-table.innerHTML = ""
-
+// ===============================
+// 3. PROCESS EACH USER
+// ===============================
 for(const userDoc of usersSnapshot.docs){
 
-let user = userDoc.data()
-let uid = userDoc.id
+const user = userDoc.data()
+const uid = userDoc.id
 
-// ✅ ADD data-label HERE
-let row = `<tr>
+// Desktop row
+let row = `
+<tr>
 <td data-label="Employee">${user.name}</td>
 <td data-label="Email">${user.email}</td>
 `
 
+// Mobile card
+let cardHTML = `
+<div class="leave-card">
+<h3>${user.name}</h3>
+<p>${user.email}</p>
+`
+
+// ===============================
+// 4. PROCESS EACH LEAVE TYPE
+// ===============================
 for(const leave of leaveTypes){
 
-let leavesSnapshot = await db.collection("leaves")
+// 🔥 Fetch approved leaves
+const leavesSnapshot = await db.collection("leaves")
 .where("userId","==",uid)
 .where("leaveType","==",leave.name)
 .where("status","==","approved")
 .get()
 
-let usedDays = 0
+let used = 0
 
 leavesSnapshot.forEach(doc=>{
-  let d = doc.data()
-  usedDays += calculateDays(d.startDate, d.endDate)
+    const d = doc.data()
+    used += calculateDays(d.startDate, d.endDate)
 })
 
-row += `<td data-label="${leave.name}">
-  ${usedDays} / ${leave.max}
-</td>`
+// ===============================
+// CALCULATIONS
+// ===============================
+const max = leave.max
+let remaining = max - used
+
+if(remaining < 0) remaining = 0
+
+let percent = max > 0 ? (used / max) * 100 : 0
+if(percent > 100) percent = 100
+
+// ===============================
+// STATUS + COLOR
+// ===============================
+let color = "green"
+let statusText = "✅ Available"
+
+if(remaining === 0){
+    color = "red"
+    statusText = "❌ No leave left"
+}
+else if(percent > 70){
+    color = "red"
+    statusText = "⚠ Low balance"
+}
+else if(percent > 40){
+    color = "orange"
+}
+
+// ===============================
+// DESKTOP TABLE CELL
+// ===============================
+row += `
+<td data-label="${leave.name}">
+${used} / ${max}
+<br><small>Remain: ${remaining}</small>
+</td>
+`
+
+// ===============================
+// MOBILE CARD BLOCK
+// ===============================
+cardHTML += `
+<div class="leave-item">
+
+<div class="leave-top">
+<span>${leave.name}</span>
+<span>${used}/${max}</span>
+</div>
+
+<div class="leave-remain">
+Remaining: ${remaining} (${statusText})
+</div>
+
+<div class="progress">
+<div class="progress-bar ${color}" style="width:${percent}%"></div>
+</div>
+
+</div>
+`
 
 }
 
-row += "</tr>"
+// close row & card
+row += `</tr>`
+cardHTML += `</div>`
 
+// append
 table.innerHTML += row
+if(cards) cards.innerHTML += cardHTML
 
 }
 
+}
+
+function getIcon(name){
+  if(name.includes("Casual")) return "🟡"
+  if(name.includes("Sick")) return "🤒"
+  if(name.includes("Earned")) return "💰"
+  if(name.includes("Maternity")) return "👶"
+  if(name.includes("Paternity")) return "👨‍👧"
+  return "📄"
 }
 
 
