@@ -1,249 +1,462 @@
-<!DOCTYPE html>
 
-<html lang="en">
-<head>
 
-<title>Admin Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+// =============================
+// CHECK LOGIN
+// =============================
 
-<!-- CSS -->
+// =============================
+// CHECK LOGIN (SECURE)
+// =============================
 
-<link rel="stylesheet" href="css/style.css">
+auth.onAuthStateChanged(async function(user){
 
-<!-- ICONS -->
+if(!user){
+    window.location.href = "login.html"
+    return
+}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+const doc = await db.collection("users").doc(user.uid).get()
 
-</head>
+if(!doc.exists){
+    await auth.signOut()
+    window.location.href = "login.html"
+    return
+}
 
-<body>
+const data = doc.data()
 
-<!-- SIDEBAR -->
+// ============================
+// PROBATION STATUS
+// ============================
 
-<div class="sidebar" id="sidebar">
+const banner = document.getElementById("probationBanner")
 
-<h2>LMS Admin</h2>
+if(data.probation === true){
 
-<a href="admin-dashboard.html" class="menu active">
-<i class="fas fa-home"></i> <span>Dashboard</span>
-</a>
+    banner.style.display = "block"
+    banner.style.background = "#fff3cd"
+    banner.style.color = "#856404"
+    banner.innerHTML = "🟡 You are currently on probation. Leave limits may apply."
 
-<a href="admin-leave-requests.html" class="menu">
-<i class="fas fa-calendar-check"></i> <span>Leave Requests</span>
-</a>
-
-<a href="admin-employee-approval.html" class="menu">
-<i class="fas fa-user-check"></i> <span>Employee Approval</span>
-</a>
-
-<a href="leave-types.html" class="menu">
-<i class="fas fa-list"></i> <span>Leave Types</span>
-</a>
-
-<a href="leave-settings.html" class="menu">
-<i class="fas fa-cog"></i> <span>Settings</span>
-</a>
-
-<a href="holidays.html" class="menu">
-<i class="fas fa-calendar"></i> <span>Holidays</span>
-</a>
-
-<a href="#" onclick="logout()" class="menu">
-<i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-</a>
-
-</div>
-
-<!-- MAIN -->
-
-<div class="main">
-
-<!-- HEADER -->
-
-<div class="header">
-
-<button onclick="toggleSidebar()">
-<i class="fas fa-bars"></i>
-</button>
-
-<h2>Admin Dashboard</h2>
-
-<!-- 🔔 Notification Bell -->
-<div class="notif-bell" onclick="toggleNotifPanel()">
-    <i class="fas fa-bell"></i>
-    <span id="notifCount" class="notif-count">0</span>
-</div>
-
-</div>
-
-<!-- 🔽 Notification Dropdown Panel -->
-<div id="notifPanel" class="notif-panel">
-    <h3>Notifications</h3>
-    <div id="notificationList"></div>
-</div>
-
-
-
-<!-- CARDS -->
-
-<div class="cards">
-
-<div class="card">
-<h3>Total Employees</h3>
-<p id="totalEmployees">0</p>
-</div>
-
-<div class="card">
-<h3>Total Leaves</h3>
-<p id="totalLeaves">0</p>
-</div>
-
-<div class="card">
-<h3>Pending Leaves</h3>
-<p id="pendingLeaves">0</p>
-</div>
-
-</div>
-
-<div style="margin:15px 0;">
-<input type="text" id="searchEmployee"
-placeholder="🔍 AI Search (name or email...)"
-onkeyup="searchEmployee()"
-style="padding:8px;width:250px;border-radius:6px;border:1px solid #ccc;">
-</div>
-
-<!-- EMPLOYEES -->
-
-<div class="section">
-<h2>👨‍💼 Active Employees</h2>
-
-<table class="table">
-<thead>
-<tr>
-<th>Name</th>
-<th>Email</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody id="employeeTable"></tbody>
-</table>
-</div>
-
-<div class="section">
-<h2>🗑 Deleted Employees</h2>
-
-<table class="table">
-<thead>
-<tr>
-<th>Name</th>
-<th>Email</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody id="deletedEmployeeTable"></tbody>
-</table>
-</div>
-
-<div id="aiInsight"
-style="
-margin:15px 0;
-padding:10px;
-background:#f0f8ff;
-border-left:5px solid #007bff;
-font-weight:bold;
-border-radius:5px;">
-🤖 AI Insight will appear here...
-</div>
-
-
-
-<!-- LEAVE REQUESTS -->
-
-<div class="section">
-<h3>Leave Requests (<span id="totalLeaveRequests">0</span>)</h3>
-
-<table class="table">
-<thead>
-<tr>
-<th>User</th>
-<th>Leave</th>
-<th>Start</th>
-<th>End</th>
-<th>Total Days</th>
-<th>Department</th>   <!-- ✅ NEW -->
-<th>Reason</th>
-<th>Adjustment</th>   <!-- ✅ NEW -->
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody id="leaveRequests"></tbody>
-</table>
-</div>
-
-<!-- LEAVE BALANCE -->
-
-<div class="section">
-<h2>Leave Balance (Total / Remaining)</h2>
-
-<table class="table">
-<thead>
-<tr id="leaveHeader">
-<th>Employee</th>
-<th>Email</th>
-<!-- Dynamic Leave Types will come here -->
-</tr>
-</thead>
-
-<tbody id="leaveBalanceTable"></tbody>
-</table>
-</div>
-
-</div>
-
-<!-- FIREBASE -->
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<script src="js/firebase.js"></script>
-
-<script src="js/admin.js"></script>
-
-<!-- SIDEBAR SCRIPT -->
-
-<script>
-function toggleSidebar(){
-
-const sidebar=document.getElementById("sidebar")
-
-if(window.innerWidth <= 768){
-sidebar.classList.toggle("active")
 }else{
-sidebar.classList.toggle("collapsed")
-}
+
+    banner.style.display = "block"
+    banner.style.background = "#d4edda"
+    banner.style.color = "#155724"
+    banner.innerHTML = "🟢 You are a confirmed employee."
 
 }
 
-/* ACTIVE MENU */
-const links = document.querySelectorAll(".menu");
+if(data.probation === true){
 
-links.forEach(link => {
-link.addEventListener("click", function () {
-links.forEach(l => l.classList.remove("active"));
-this.classList.add("active");
-});
-});
+    banner.style.display = "block"
+    banner.style.background = "#fff3cd"
+    banner.style.color = "#856404"
+    banner.innerHTML = "🟡 You are on probation. Leave limits apply."
 
-</script>
+}else{
+    banner.style.display = "none"
+}
+if(data.probation === undefined){
+    data.probation = false
+}
 
-</body>
-</html>
+// 🚫 BLOCK NON-EMPLOYEE
+if(data.role !== "employee"){
+    alert("Access denied")
+    await auth.signOut()
+    window.location.href = "login.html"
+    return
+}
+
+// 🚫 BLOCK NON-APPROVED USERS (THIS IS YOUR LINE)
+if(data.status !== "approved"){
+    alert("Your account is not approved or has been removed")
+    await auth.signOut()
+    window.location.href = "login.html"
+    return
+}
+
+// ✅ ALLOW ACCESS
+const uid = user.uid
+
+loadDashboard(uid)
+loadLeaveBalance(uid)
+// ✅ ADD THESE HERE
+loadNotifications(uid)
+loadNotificationCount(uid)
+// ✅ ADD THIS
+loadLeaveInstructions()
+
+})
+
+
+// =============================
+// LOAD DASHBOARD DATA
+// =============================
+
+function loadDashboard(uid){
+
+let total = 0
+let pending = 0
+let approved = 0
+
+const table = document.getElementById("leaveTable")
+
+db.collection("leaves")
+.where("userId","==",uid)
+.onSnapshot(snapshot=>{
+
+table.innerHTML = ""
+
+total = 0
+pending = 0
+approved = 0
+
+snapshot.forEach(doc=>{
+
+let data = doc.data()
+
+total++
+
+if(data.status === "pending"){
+pending++
+}
+
+if(data.status === "approved"){
+approved++
+}
+
+let start = new Date(data.startDate)
+let end = new Date(data.endDate)
+
+// calculate days
+let diffTime = end - start
+let days = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+
+let row = `
+<tr>
+<td>${data.leaveType}</td>
+<td>${data.startDate}</td>
+<td>${data.endDate}</td>
+<td>${days}</td>   <!-- ✅ SHOW DAYS -->
+<td>${data.status}</td>
+</tr>
+`
+
+table.innerHTML += row
+
+})
+
+document.getElementById("totalLeaves").innerText = total
+document.getElementById("pendingLeaves").innerText = pending
+document.getElementById("approvedLeaves").innerText = approved
+
+})
+
+}
+
+
+
+// =============================
+// LOAD LEAVE BALANCE
+// =============================
+
+function loadLeaveBalance(uid){
+
+const table = document.getElementById("leaveBalanceTable")
+
+table.innerHTML = ""
+
+db.collection("leave_types").get().then(typeSnapshot=>{
+
+typeSnapshot.forEach(typeDoc=>{
+
+let typeData = typeDoc.data()
+
+let leaveName = typeData.name
+
+// get max leave from admin created leave type
+let maxLeave = Number(typeData.max_days || 0)
+
+db.collection("leaves")
+.where("userId","==",uid)
+.where("leaveType","==",leaveName)
+.where("status","==","approved")
+.get()
+.then(snapshot=>{
+
+let used = snapshot.size
+
+// prevent negative value
+let remaining = Math.max(0 , maxLeave - used)
+
+let row = `
+<tr>
+<td>${leaveName}</td>
+<td>${maxLeave}</td>
+<td>${used}</td>
+<td>${remaining}</td>
+</tr>
+`
+
+table.innerHTML += row
+
+})
+
+})
+
+})
+
+}
+
+function loadNotifications(uid){
+
+    const list = document.getElementById("notificationList")
+    const countEl = document.getElementById("notifCount")
+
+    if(!list) return
+
+    db.collection("notifications")
+.where("userId", "==", uid)
+.orderBy("createdAt", "desc")
+.onSnapshot(snapshot => {
+
+        list.innerHTML = ""
+
+        let unreadCount = 0
+
+        if(snapshot.empty){
+            list.innerHTML = "<div class='empty'>No notifications</div>"
+            if(countEl) countEl.textContent = 0
+            return
+        }
+
+        snapshot.forEach(doc => {
+
+            let data = doc.data()
+
+            if(data.hidden) return
+
+            if(!data.read) unreadCount++
+
+            let item = document.createElement("div")
+            item.className = "notif-item " + (!data.read ? "unread" : "")
+
+            item.innerHTML = `
+                <div class="notif-icon">
+                    ${data.read ? "✅" : "🔔"}
+                </div>
+
+                <div class="notif-content">
+                    <div class="notif-text">${data.message}</div>
+                    <div class="notif-time">${formatTime(data.createdAt)}</div>
+                </div>
+
+                <div class="notif-delete" title="Delete">🗑</div>
+            `
+
+            // ✅ MARK AS READ
+            item.onclick = () => {
+                db.collection("notifications")
+                .doc(doc.id)
+                .update({ read: true })
+            }
+
+            // ✅ DELETE BUTTON (FIXED)
+            const deleteBtn = item.querySelector(".notif-delete")
+
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation() // ❗ prevent mark as read
+
+                // optional animation
+                item.style.opacity = "0"
+                item.style.transform = "translateX(20px)"
+
+                setTimeout(() => {
+                    db.collection("notifications")
+                    .doc(doc.id)
+                    .delete()
+                }, 200)
+            }
+
+            list.appendChild(item)
+        })
+
+        // ✅ UPDATE BADGE
+        if(countEl){
+            countEl.textContent = unreadCount
+            countEl.style.display = unreadCount > 0 ? "inline-block" : "none"
+        }
+
+    })
+}
+function formatTime(timestamp){
+
+    if(!timestamp) return ""
+
+    const now = new Date()
+    const time = timestamp.toDate()
+    const diff = Math.floor((now - time) / 1000)
+
+    if(diff < 60) return "Just now"
+    if(diff < 3600) return Math.floor(diff/60) + " min ago"
+    if(diff < 86400) return Math.floor(diff/3600) + " hrs ago"
+
+    return time.toLocaleDateString()
+}
+function markAllRead(){
+
+  auth.onAuthStateChanged(user => {
+
+    if(!user) return
+
+    db.collection("notifications")
+      .where("userId", "==", user.uid)
+      .where("read", "==", false)
+      .get()
+      .then(snapshot => {
+
+        snapshot.forEach(doc => {
+          doc.ref.update({ read: true })
+        })
+
+      })
+  })
+}
+
+function loadNotificationCount(uid){
+
+    const countEl = document.getElementById("notifCount")
+
+    db.collection("notifications")
+    .where("userId", "==", uid)
+    .onSnapshot(snapshot => {
+
+        let count = 0
+
+        snapshot.forEach(doc => {
+            let data = doc.data()
+
+            if(data.hidden) return     // ❌ skip hidden
+            if(!data.read) count++     // ✅ count only unread
+        })
+
+        countEl.textContent = count > 99 ? "99+" : count
+        countEl.style.display = count > 0 ? "inline-block" : "none"
+    })
+}
+
+function markAsRead(id, e){
+    e.stopPropagation()
+
+    db.collection("notifications").doc(id).update({
+        read: true
+    })
+}
+function hideNotification(id, e){
+    e.stopPropagation()
+
+    db.collection("notifications").doc(id).update({
+        hidden: true
+    })
+}
+function deleteNotification(id, e){
+    e.stopPropagation()
+
+    if(!confirm("Delete this notification?")) return
+
+    db.collection("notifications").doc(id).delete()
+}
+
+function toggleNotifBox(){
+
+    const box = document.getElementById("notifBox")
+
+    if(box.style.display === "block"){
+        box.style.display = "none"
+    } else {
+        box.style.display = "block"
+    }
+}
+
+
+// =============================
+// LOAD LEAVE INSTRUCTIONS
+// =============================
+function loadLeaveInstructions(){
+
+  const container = document.getElementById("leaveInstructions")
+
+  if(!container) return
+
+  container.innerHTML = "<p>Loading...</p>"
+
+  db.collection("leave_instructions")
+  .orderBy("createdAt", "asc")
+  .get()
+  .then(snapshot => {
+
+    if(snapshot.empty){
+      container.innerHTML = "<p>No leave instructions available</p>"
+      return
+    }
+
+    container.innerHTML = ""
+
+    snapshot.forEach(doc => {
+
+      const data = doc.data()
+
+      container.innerHTML += `
+        <div class="leave-card" data-rules="${data.rules}">
+          <h3>${data.code}</h3>
+          <p>${data.name}</p>
+          <span>${data.days} days/year</span>
+        </div>
+      `
+
+    })
+
+    attachLeaveClick()
+
+  })
+
+}
+function attachLeaveClick(){
+
+  document.querySelectorAll(".leave-card").forEach(card => {
+
+    card.onclick = () => {
+
+      const rules = card.getAttribute("data-rules")
+      const title = card.querySelector("h3").innerText
+
+      const titleEl = document.getElementById("modalTitle")
+if(titleEl) titleEl.innerText = title
+
+      // 🔥 Format rules nicely
+      document.getElementById("modalBody").innerHTML = `
+        <p style="white-space:pre-line;">${rules}</p>
+      `
+
+      document.getElementById("leaveModal").style.display = "block"
+
+    }
+
+  })
+
+}
+function closeLeaveModal(){
+  const modal = document.getElementById("leaveModal")
+  if(modal){
+    modal.style.display = "none"
+  }
+}
+
+window.onclick = function(event){
+  const modal = document.getElementById("leaveModal")
+  if(event.target === modal){
+    modal.style.display = "none"
+  }
+}
