@@ -1,3 +1,5 @@
+
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 // ===========================
 // USER REGISTER
 // ===========================
@@ -81,7 +83,7 @@ function showMessage(text, type){
 // LOGIN
 // ===========================
 
-function login(){
+async function login(){
 
 let emailInput = document.getElementById("email")
 let passwordInput = document.getElementById("password")
@@ -89,7 +91,7 @@ let passwordInput = document.getElementById("password")
 let email = emailInput.value.trim()
 let password = passwordInput.value.trim()
 
-// reset error styles
+// reset errors
 emailInput.classList.remove("input-error")
 passwordInput.classList.remove("input-error")
 
@@ -104,53 +106,49 @@ if(email === "" || password === ""){
 }
 
 setLoading(true)
+document.getElementById("loginBtn").disabled = true
 
-auth.signInWithEmailAndPassword(email,password)
+try{
 
-.then((userCredential)=>{
+// 🔥 IMPORTANT: persistence
+await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 
-let uid = userCredential.user.uid
+// 🔥 login
+const userCredential = await auth.signInWithEmailAndPassword(email,password)
+const uid = userCredential.user.uid
 
-db.collection("users").doc(uid).get()
-
-.then((doc)=>{
+// 🔥 get user data
+const doc = await db.collection("users").doc(uid).get()
 
 if(!doc.exists){
     showMessage("User record not found", "error")
-    setLoading(false)
+    await auth.signOut()
     return
 }
 
-let data = doc.data()
+const data = doc.data()
 
-// check approval
+// 🔥 check approval
 if(data.status !== "approved"){
-   showMessage("Your account is pending admin approval", "warning")
-    auth.signOut()
-    setLoading(false)
+    showMessage("Your account is pending admin approval", "warning")
+    await auth.signOut()
     return
 }
 
-// success
+// ✅ SUCCESS
 showMessage("Login successful! Redirecting...", "success")
 
 setTimeout(()=>{
 
 if(data.role === "admin"){
-    window.location="admin-dashboard.html"
+    window.location = "admin-dashboard.html"
 }else{
-    window.location="employee-dashboard.html"
+    window.location = "employee-dashboard.html"
 }
 
-},1200)
+},1000)
 
-})
-
-})
-
-.catch((error)=>{
-
-setLoading(false)
+}catch(error){
 
 let msg = ""
 
@@ -161,11 +159,11 @@ case "auth/user-not-found":
     break
 
 case "auth/wrong-password":
-    msg = "? Incorrect password"
+    msg = "Incorrect password"
     break
 
 case "auth/invalid-email":
-    msg = "? Invalid email format"
+    msg = "Invalid email format"
     break
 
 case "auth/too-many-requests":
@@ -173,12 +171,18 @@ case "auth/too-many-requests":
     break
 
 default:
-    msg = "? Login failed. Check credentials"
+    msg = "Login failed. Check credentials"
 }
 
 showMessage(msg, "error")
 
-})
+}finally{
+
+// ✅ always reset UI
+setLoading(false)
+document.getElementById("loginBtn").disabled = false
+
+}
 
 }
 
