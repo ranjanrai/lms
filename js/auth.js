@@ -254,3 +254,47 @@ console.log("No user logged in")
 }
 
 })
+
+/* 🔔 REQUEST PERMISSION */
+async function requestNotificationPermission(){
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission === "granted"){
+      console.log("Notification permission granted");
+    }else{
+      console.log("Notification permission denied");
+    }
+  }catch(error){
+    console.log(error);
+  }
+}
+
+/* 🔑 GET FCM TOKEN */
+async function getFCMToken(){
+  try{
+    const messaging = firebase.messaging();
+
+    const token = await messaging.getToken({
+      vapidKey: "BKwYqOH5rF6WSKTmiMCdp2TrKhQZ8GFGgT2Oc0H5xXJaK1K8U8RJn5RIuBC-mjf2QtzXPHjCDXExAUN9ZP4Jw0I"
+    });
+
+    console.log("FCM Token:", token);
+    return token;
+
+  }catch(error){
+    console.log("Token error:", error);
+  }
+}
+
+/* 💾 SAVE ADMIN TOKEN */
+async function saveAdminToken(user){
+  const token = await getFCMToken();
+
+  if(token){
+    await db.collection("admin_tokens").doc(user.uid).set({
+      token: token
+    });
+
+    console.log("Admin token saved");
+  }
+}
