@@ -154,6 +154,7 @@ Create new account
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
 <script src="js/firebase.js"></script>
 <script src="js/auth.js"></script>
@@ -208,8 +209,13 @@ try{
     // 🚀 ROLE-BASED REDIRECT
     // ===============================
     if(data.role === "admin"){
-        window.location.href = "admin-dashboard.html"
-    }
+
+    // 🔔 Enable notifications for admin
+    await requestNotificationPermission();
+    await saveAdminToken(user);
+
+    window.location.href = "admin-dashboard.html"
+}
     else if(data.role === "employee"){
         window.location.href = "employee-dashboard.html"
     }
