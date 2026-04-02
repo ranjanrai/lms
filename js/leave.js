@@ -363,6 +363,33 @@ async function applyLeave() {
         });
 
         // ===========================
+// 🔔 PUSH NOTIFICATION (FCM)
+// ===========================
+
+const tokenSnapshot = await db.collection("admin_tokens").get();
+
+tokenSnapshot.forEach(doc => {
+
+    const token = doc.data().token;
+
+    fetch("https://fcm.googleapis.com/fcm/send", {
+        method: "POST",
+        headers: {
+            "Authorization": "key=BKwYqOH5rF6WSKTmiMCdp2TrKhQZ8GFGgT2Oc0H5xXJaK1K8U8RJn5RIuBC-mjf2QtzXPHjCDXExAUN9ZP4Jw0I",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            to: token,
+            notification: {
+                title: "New Leave Request",
+                body: `${userData.name} applied for ${leaveType}`
+            }
+        })
+    });
+
+});
+
+        // ===========================
         // ADMIN NOTIFICATION
         // ===========================
 
