@@ -341,6 +341,44 @@ async function applyLeave() {
             }
         }
 
+
+// ===========================
+// 🚫 BLOCK OVERLAPPING / PENDING LEAVE
+// ===========================
+
+const selectedStart = new Date(startDate);
+const selectedEnd = new Date(endDate);
+
+const pendingSnapshot = await db.collection("leaves")
+    .where("userId", "==", user.uid)
+    .where("status", "==", "pending")
+    .get();
+
+let alreadyPending = false;
+
+pendingSnapshot.forEach(doc => {
+
+    let leave = doc.data();
+
+    let leaveStart = new Date(leave.startDate);
+    let leaveEnd = new Date(leave.endDate);
+
+    // 🔥 BEST LOGIC (OVERLAP CHECK)
+    if (
+        leaveStart <= selectedEnd &&
+        leaveEnd >= selectedStart
+    ) {
+        alreadyPending = true;
+    }
+
+});
+
+if (alreadyPending) {
+    showToast("❌ You already have a pending leave in this period");
+    return resetButton();
+}
+
+
         // ===========================
         // SAVE
         // ===========================
