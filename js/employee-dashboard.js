@@ -159,55 +159,80 @@ document.getElementById("approvedLeaves").innerText = approved
 
 
 // =============================
-// LOAD LEAVE BALANCE
+// LOAD LEAVE BALANCE (OPTIMIZED)
 // =============================
 
-function loadLeaveBalance(uid){
+async function loadLeaveBalance(uid){
 
-const table = document.getElementById("leaveBalanceTable")
+    const table = document.getElementById("leaveBalanceTable");
+    table.innerHTML = "";
 
-table.innerHTML = ""
+    try {
 
-db.collection("leave_types").get().then(typeSnapshot=>{
+        // 🔥 1. Get all leave types
+        const typeSnapshot = await db.collection("leave_types").get();
 
-typeSnapshot.forEach(typeDoc=>{
+        // 🔥 2. Get all approved leaves of user (ONLY ONCE)
+        const leaveSnapshot = await db.collection("leaves")
+            .where("userId","==",uid)
+            .where("status","==","approved")
+            .get();
 
-let typeData = typeDoc.data()
+        // 🔥 3. Group leaves by type
+        let leaveMap = {};
 
-let leaveName = typeData.name
+        leaveSnapshot.forEach(doc => {
+            let data = doc.data();
 
-// get max leave from admin created leave type
-let maxLeave = Number(typeData.max_days || 0)
+            if(!leaveMap[data.leaveType]){
+                leaveMap[data.leaveType] = [];
+            }
 
-db.collection("leaves")
-.where("userId","==",uid)
-.where("leaveType","==",leaveName)
-.where("status","==","approved")
-.get()
-.then(snapshot=>{
+            leaveMap[data.leaveType].push(data);
+        });
 
-let used = snapshot.size
+        // 🔥 4. Loop each leave type
+        for(const typeDoc of typeSnapshot.docs){
 
-// prevent negative value
-let remaining = Math.max(0 , maxLeave - used)
+            let typeData = typeDoc.data();
+            let leaveName = typeData.name;
+            let maxLeave = Number(typeData.max_days || 0);
 
-let row = `
-<tr>
-<td>${leaveName}</td>
-<td>${maxLeave}</td>
-<td>${used}</td>
-<td>${remaining}</td>
-</tr>
-`
+            let uniqueDates = new Set();
 
-table.innerHTML += row
+            let leaves = leaveMap[leaveName] || [];
 
-})
+            leaves.forEach(d => {
 
-})
+                let current = new Date(d.startDate);
+                let end = new Date(d.endDate);
 
-})
+                while (current <= end) {
 
+                    let dateStr = current.toISOString().split("T")[0];
+                    uniqueDates.add(dateStr);
+
+                    current.setDate(current.getDate() + 1);
+                }
+            });
+
+            let used = uniqueDates.size;
+            let remaining = Math.max(0, maxLeave - used);
+
+            // 🔥 Append row
+            table.innerHTML += `
+                <tr>
+                    <td>${leaveName}</td>
+                    <td>${maxLeave}</td>
+                    <td>${used}</td>
+                    <td>${remaining}</td>
+                </tr>
+            `;
+        }
+
+    } catch (error) {
+        console.error("Error loading leave balance:", error);
+    }
 }
 
 function loadNotifications(uid){
