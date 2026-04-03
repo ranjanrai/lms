@@ -539,6 +539,23 @@ function calculateDays(start, end) {
     return diffDays + 1   // ✅ include both start & end
 }
 
+const newStart = new Date(data.startDate);
+const newEnd = new Date(data.endDate);
+
+usedSnapshot.forEach(doc => {
+    let d = doc.data();
+
+    let existingStart = new Date(d.startDate);
+    let existingEnd = new Date(d.endDate);
+
+    if (
+        existingStart <= newEnd &&
+        existingEnd >= newStart
+    ) {
+        throw new Error("⚠ Overlapping leave already approved");
+    }
+});
+
 
 // ===============================
 // APPROVE LEAVE
@@ -582,12 +599,22 @@ const usedSnapshot = await db.collection("leaves")
 .where("status","==","approved")
 .get()
 
-let usedDays = 0
+let uniqueDates = new Set();
 
-usedSnapshot.forEach(doc=>{
-  let d = doc.data()
-  usedDays += calculateDays(d.startDate, d.endDate)
-})
+usedSnapshot.forEach(doc => {
+
+    let d = doc.data();
+    let current = new Date(d.startDate);
+    let end = new Date(d.endDate);
+
+    while (current <= end) {
+        let dateStr = current.toISOString().split("T")[0];
+        uniqueDates.add(dateStr);
+        current.setDate(current.getDate() + 1);
+    }
+});
+
+let usedDays = uniqueDates.size;
 
 let remaining = maxAllowed - usedDays
 
@@ -748,12 +775,22 @@ const leavesSnapshot = await db.collection("leaves")
 .where("status","==","approved")
 .get()
 
-let used = 0
+let uniqueDates = new Set();
 
-leavesSnapshot.forEach(doc=>{
-    const d = doc.data()
-    used += calculateDays(d.startDate, d.endDate)
-})
+leavesSnapshot.forEach(doc => {
+
+    let d = doc.data();
+    let current = new Date(d.startDate);
+    let end = new Date(d.endDate);
+
+    while (current <= end) {
+        let dateStr = current.toISOString().split("T")[0];
+        uniqueDates.add(dateStr);
+        current.setDate(current.getDate() + 1);
+    }
+});
+
+let used = uniqueDates.size;
 
 // ===============================
 // CALCULATIONS
