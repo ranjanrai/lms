@@ -1061,3 +1061,90 @@ function setProbation(uid, value){
     })
 
 }
+function exportLeaveRequests(){
+
+  let table = document.getElementById("leaveRequests");
+
+  let data = [];
+
+  // ✅ Exact headers (match your table)
+  data.push([
+    "User",
+    "Leave Type",
+    "Start Date",
+    "End Date",
+    "Total Days",
+    "Department",
+    "Reason",
+    "Adjustment",
+    "Status"
+  ]);
+
+  table.querySelectorAll("tr").forEach(tr => {
+
+    let row = [];
+    let cells = tr.querySelectorAll("td");
+
+    cells.forEach((td, index) => {
+      // ❌ skip last column (Action buttons)
+      if(index !== cells.length - 1){
+        row.push(td.innerText.replace(/\n/g," ").trim());
+      }
+    });
+
+    if(row.length > 0){
+      data.push(row);
+    }
+
+  });
+
+  let ws = XLSX.utils.aoa_to_sheet(data);
+  let wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, ws, "Leave Requests");
+
+  XLSX.writeFile(wb, "Leave_Requests.xlsx");
+}
+function exportLeaveBalance(){
+
+  let headerRow = document.getElementById("leaveHeader");
+  let table = document.getElementById("leaveBalanceTable");
+
+  let data = [];
+
+  // ✅ Dynamic headers (VERY IMPORTANT for your system)
+  let headers = [];
+  headerRow.querySelectorAll("th").forEach(th => {
+    headers.push(th.innerText.trim());
+  });
+
+  data.push(headers);
+
+  // ✅ Rows
+  table.querySelectorAll("tr").forEach(tr => {
+
+    let row = [];
+
+    tr.querySelectorAll("td").forEach(td => {
+
+      let text = td.innerText
+        .replace(/\n/g," ")
+        .replace("Remain:", "")
+        .trim();
+
+      row.push(text);
+    });
+
+    if(row.length > 0){
+      data.push(row);
+    }
+
+  });
+
+  let ws = XLSX.utils.aoa_to_sheet(data);
+  let wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, ws, "Leave Balance");
+
+  XLSX.writeFile(wb, "Leave_Balance.xlsx");
+}
