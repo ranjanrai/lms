@@ -189,11 +189,14 @@ auth.createUserWithEmailAndPassword(email, password)
     const user = userCredential.user
 
     return db.collection("users").doc(user.uid).set({
-        name: name,
-        email: email,
-        role: "employee",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    })
+    name: name,
+    email: email,
+    role: "employee",
+    status: "pending",   // 🔥 IMPORTANT
+    probation: false,
+    leave_balance: {},   // 🔥 IMPORTANT
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+})
 
 })
 .then(() => {
