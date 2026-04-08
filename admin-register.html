@@ -1,27 +1,175 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="en">
 <head>
+
+<meta charset="UTF-8">
 <title>Admin Register</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Google Font -->
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #5a67d8;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+}
+
+.success {
+    color: green;
+    font-size: 14px;
+    text-align: center;
+}
+</style>
+
 </head>
 
 <body>
 
-<h2>Admin Registration</h2>
+<div class="container">
 
-<form id="adminRegisterForm">
+<h2>Create Admin</h2>
 
-<input type="text" id="name" placeholder="Admin Name" required><br><br>
+<form id="adminForm">
 
-<input type="email" id="email" placeholder="Admin Email" required><br><br>
+<input type="text" id="name" placeholder="Admin Name" required>
 
-<input type="password" id="password" placeholder="Password" required><br><br>
+<input type="email" id="email" placeholder="Admin Email" required>
+
+<input type="password" id="password" placeholder="Password" required>
 
 <button type="submit">Create Admin</button>
 
 </form>
 
+<p id="message"></p>
+
+</div>
+
+<!-- Firebase -->
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 <script src="js/firebase.js"></script>
-<script src="js/admin-register.js"></script>
+
+<script>
+
+const form = document.getElementById("adminForm");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    message.innerHTML = "";
+
+    // Validation
+    if (!name || !email || !password) {
+        message.innerHTML = "<span class='error'>All fields are required</span>";
+        return;
+    }
+
+    if (password.length < 6) {
+        message.innerHTML = "<span class='error'>Password must be at least 6 characters</span>";
+        return;
+    }
+
+    try {
+
+        // ?? Create user in Firebase Auth
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+
+        const user = userCredential.user;
+
+        // ?? Save admin data in Firestore
+        await db.collection("users").doc(user.uid).set({
+            name: name,
+            email: email,
+            role: "admin",
+            status: "approved",
+            emailNotification: true,
+            createdAt: new Date()
+        });
+
+        message.innerHTML = "<span class='success'>? Admin created successfully</span>";
+
+        form.reset();
+
+    } catch (err) {
+
+        if (err.code === "auth/email-already-in-use") {
+            message.innerHTML = "<span class='error'>Email already exists</span>";
+        }
+        else if (err.code === "auth/invalid-email") {
+            message.innerHTML = "<span class='error'>Invalid email</span>";
+        }
+        else if (err.code === "auth/weak-password") {
+            message.innerHTML = "<span class='error'>Weak password</span>";
+        }
+        else {
+            message.innerHTML = `<span class='error'>${err.message}</span>`;
+        }
+
+    }
+
+});
+
+</script>
 
 </body>
 </html>
