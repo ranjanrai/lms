@@ -187,7 +187,7 @@ db.collection("leaves")
 function loadEmployees(){
 
 const employeeTable = document.getElementById("employeeTable")
-if(!employeeTable) return   // ✅ IMPORTANT
+if(!employeeTable) return
 
 db.collection("users")
 .where("role","==","employee")
@@ -199,46 +199,38 @@ snapshot.forEach(doc=>{
 
 let data = doc.data()
 
+// ✅ ALWAYS USE THIS
+let status = data.status || "pending"
+
 let action = ""
 let statusBadge = ""
 
-// 🎨 STATUS COLORS
-if(data.status === "approved"){
+// 🎨 STATUS
+if(status === "approved"){
     statusBadge = `<span style="color:green;font-weight:bold;">Approved</span>`
 }
-else if(data.status === "pending"){
+else if(status === "pending"){
     statusBadge = `<span style="color:orange;font-weight:bold;">Pending</span>`
 }
-else if(data.status === "deleted"){
+else if(status === "deleted"){
     statusBadge = `<span style="color:red;font-weight:bold;">Deleted</span>`
 }
 else{
-    statusBadge = data.status
+    return
 }
 
-// 🟡 Pending
-if(data.status === "pending"){
+// 🟡 Pending → approve buttons
+if(status === "pending"){
     action = `
         <button onclick="approveEmployee('${doc.id}')">Approve</button>
         <button onclick="rejectEmployee('${doc.id}')">Reject</button>
     `
 }
 
-// 🟢 Approved
-else if(data.status === "approved"){
-
-    let toggle = `
-    <label class="switch">
-        <input type="checkbox"
-            ${data.probation === true ? "checked" : ""}
-            onchange="setProbation('${doc.id}', this.checked)">
-        <span class="slider"></span>
-    </label>
-    `
-
+// 🟢 Approved → controls
+else if(status === "approved"){
     action = `
 <div style="display:flex;align-items:center;gap:12px;">
-
     <button onclick="resetLeave('${doc.id}')">🔄</button>
 
     <div style="display:flex;align-items:center;gap:6px;">
@@ -253,36 +245,38 @@ else if(data.status === "approved"){
     </div>
 
     <button onclick="deleteEmployee('${doc.id}')">🗑</button>
-
 </div>
 `
 }
 
-// 🔴 Deleted → Restore
-else if(data.status === "deleted"){
+// 🔴 Deleted → restore
+else if(status === "deleted"){
     action = `
-        <button onclick="restoreEmployee('${doc.id}')">Restore</button>
+        <button onclick="restoreEmployee('${doc.id}')">♻ Restore</button>
+        <button onclick="permanentDeleteEmployee('${doc.id}')">❌ Delete</button>
     `
 }
 
-// ❌ hide rejected
-else{
-    return
+// ✅ FIXED STATUS TEXT
+let extraStatus = ""
+
+if(status === "approved"){
+    extraStatus = data.probation
+        ? "<span style='color:orange;'>🟡 Probation</span>"
+        : "<span style='color:green;'>🟢 Confirmed</span>"
 }
 
-// ✅ MOBILE CARD SUPPORT (IMPORTANT CHANGE)
+// ✅ ROW
 let row = `
 <tr>
-<td data-label="Name">${data.name}</td>
-<td data-label="Email">${data.email}</td>
-<td data-label="Status">
+<td>${data.name}</td>
+<td>${data.email}</td>
+<td>
   ${statusBadge}
   <br>
-${data.probation === true
-  ? "<span style='color:orange;'>🟡 Probation</span>"
-  : "<span style='color:green;'>🟢 Confirmed</span>"}
+  ${extraStatus}
 </td>
-<td data-label="Action">${action}</td>
+<td>${action}</td>
 </tr>
 `
 
@@ -291,26 +285,79 @@ employeeTable.innerHTML += row
 })
 
 })
-
 }
 
 // ===============================
 // APPROVE EMPLOYEE
 // ===============================
-function approveEmployee(uid){
+async function approveEmployee(uid) {
 
-if(!confirm("Approve employee and set probation?")) return
+    // 🔒 Confirm action
+    if (!confirm("Approve employee and set probation?")) return;
 
-db.collection("users").doc(uid).update({
-    status: "approved",
-    probation: true
-})
-.then(()=>{
-    alert("Employee approved (On Probation)")
-})
+    try {
 
+        // 🔍 1. Get user data
+        const userRef = db.collection("users").doc(uid);
+        const userSnap = await userRef.get();
+
+        if (!userSnap.exists) {
+            alert("❌ User not found");
+            return;
+        }
+
+        const userData = userSnap.data();
+
+        // 🚫 Prevent duplicate approval
+        if (userData.status === "approved") {
+            alert("⚠ Employee already approved");
+            return;
+        }
+
+        // 🔥 2. Get leave types
+        const leaveTypesSnapshot = await db.collection("leave_types").get();
+
+        if (leaveTypesSnapshot.empty) {
+            alert("❌ No leave types found. Please create leave types first.");
+            return;
+        }
+
+        // 📊 3. Build leave balance
+        let leaveBalance = {};
+
+        leaveTypesSnapshot.forEach(doc => {
+            const leave = doc.data();
+
+            leaveBalance[leave.name] = parseInt(leave.max_days) || 0;
+        });
+
+        // 🔄 4. Update employee
+        await userRef.update({
+            status: "approved",
+            probation: true,
+            leave_balance: leaveBalance,
+            approvedAt: firebase.firestore.FieldValue.serverTimestamp() // ⭐ added
+        });
+
+        // 🔔 5. Send notification
+        await db.collection("notifications").add({
+            userId: uid,
+            role: "employee",
+            type: "account_approved",
+            message: "🎉 Your account has been approved. You can now apply for leave.",
+            read: false,
+            hidden: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // ✅ Success
+        alert("✅ Employee approved successfully");
+
+    } catch (error) {
+        console.error("Approve Error:", error);
+        alert("❌ Failed to approve employee");
+    }
 }
-
 
 
 // ===============================
@@ -382,7 +429,21 @@ db.collection("users").doc(uid).update({
 
 }
 }
+function permanentDeleteEmployee(uid){
 
+if(confirm("⚠ Permanently delete this employee? This cannot be undone!")){
+
+    db.collection("users").doc(uid).delete()
+    .then(()=>{
+        alert("✅ Employee permanently deleted")
+    })
+    .catch(error=>{
+        console.error(error)
+        alert("❌ Error deleting employee")
+    })
+
+}
+}
 function searchEmployee(){
 
 let input = document.getElementById("searchEmployee").value.toLowerCase()
@@ -466,7 +527,7 @@ action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
 
 // 🎨 STATUS
 let statusBadge = ""
-if(data.status === "approved"){
+if(status === "approved"){
     statusBadge = `<span style="color:green;font-weight:bold;">Approved</span>`
 }
 else if(data.status === "pending"){
@@ -539,22 +600,6 @@ function calculateDays(start, end) {
     return diffDays + 1   // ✅ include both start & end
 }
 
-const newStart = new Date(data.startDate);
-const newEnd = new Date(data.endDate);
-
-usedSnapshot.forEach(doc => {
-    let d = doc.data();
-
-    let existingStart = new Date(d.startDate);
-    let existingEnd = new Date(d.endDate);
-
-    if (
-        existingStart <= newEnd &&
-        existingEnd >= newStart
-    ) {
-        throw new Error("⚠ Overlapping leave already approved");
-    }
-});
 
 
 // ===============================
@@ -648,6 +693,7 @@ await db.collection("notifications").add({
 })
 
 }
+
 
 
 
@@ -875,7 +921,6 @@ function getIcon(name){
   if(name.includes("Paternity")) return "👨‍👧"
   return "📄"
 }
-
 
 
 // ===============================
