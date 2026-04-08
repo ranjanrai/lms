@@ -518,6 +518,7 @@ async function sendAdminEmail(userData, leaveType, startDate, endDate, reason) {
                 leave_type: leaveType,
                 start_date: startDate,
                 end_date: endDate,
+                total_days: totalDays,   // ✅ ADD THIS
                 reason: reason
 
             })
