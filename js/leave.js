@@ -399,6 +399,8 @@ if (alreadyPending) {
             status: "pending",
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+// 📧 SEND EMAIL TO ADMIN
+await sendAdminEmail(userData, leaveType, startDate, endDate, reason);
 
         // ===========================
 // 🔔 PUSH NOTIFICATION (FCM)
@@ -491,6 +493,39 @@ function logout() {
 
     auth.signOut().then(() => {
         window.location = "login.html";
+    });
+
+}
+async function sendAdminEmail(userData, leaveType, startDate, endDate, reason) {
+
+    const snapshot = await db.collection("users")
+        .where("role", "==", "admin")
+        .get();
+
+    snapshot.forEach(doc => {
+
+        const admin = doc.data();
+
+        // ✅ Use custom notification email
+        const email = admin.notifyEmail || admin.email;
+
+        if(admin.emailNotification){
+
+            emailjs.send("service_bawg489", "template_jqw747l", {
+
+                to_email: email,
+                employee_name: userData.name,
+                leave_type: leaveType,
+                start_date: startDate,
+                end_date: endDate,
+                reason: reason
+
+            })
+            .then(() => console.log("Email sent"))
+            .catch(err => console.log("Email error:", err));
+
+        }
+
     });
 
 }
