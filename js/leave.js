@@ -400,7 +400,7 @@ if (alreadyPending) {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 // 📧 SEND EMAIL TO ADMIN
-await sendAdminEmail(userData, leaveType, startDate, endDate, reason);
+await sendAdminEmail(userData, leaveType, startDate, endDate, reason, requestedDays);
 
         // ===========================
 // 🔔 PUSH NOTIFICATION (FCM)
@@ -496,7 +496,7 @@ function logout() {
     });
 
 }
-async function sendAdminEmail(userData, leaveType, startDate, endDate, reason) {
+async function sendAdminEmail(userData, leaveType, startDate, endDate, reason, totalDays) {
 
     const snapshot = await db.collection("users")
         .where("role", "==", "admin")
@@ -505,8 +505,6 @@ async function sendAdminEmail(userData, leaveType, startDate, endDate, reason) {
     snapshot.forEach(doc => {
 
         const admin = doc.data();
-
-        // ✅ Use custom notification email
         const email = admin.notifyEmail || admin.email;
 
         if(admin.emailNotification){
@@ -518,7 +516,7 @@ async function sendAdminEmail(userData, leaveType, startDate, endDate, reason) {
                 leave_type: leaveType,
                 start_date: startDate,
                 end_date: endDate,
-                
+                total_days: totalDays,   // ✅ FIXED
                 reason: reason
 
             })
