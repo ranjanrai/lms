@@ -120,6 +120,12 @@
 <option value="false">No</option>
 </select>
 <input type="number" id="carryForwardMax" placeholder="Max Days">
+<!-- ✅ ADD THIS HERE -->
+<label>Carry Type</label>
+<select id="carryType">
+  <option value="yearly">Yearly</option>
+  <option value="monthly">Monthly</option>
+</select>
 
 <label>After 1 Year Only</label>
 <select id="after1YearOnly">
@@ -200,6 +206,7 @@ settings:{
   monthlyEnabled:false,
   carryForward:false,
   carryForwardMax:0,
+  carryType: "yearly",
   after1YearOnly:false,
   after1YearDays:0,
   advanceDays:0,
@@ -375,6 +382,7 @@ document.getElementById("probationLimit").value = s.probationLimit || 0;
 document.getElementById("monthlyEnabled").value = (s.monthlyEnabled ?? false).toString();
 
 document.getElementById("carryForward").value = (s.carryForward ?? false).toString();
+document.getElementById("carryType").value = s.carryType || "yearly";
 document.getElementById("carryForwardMax").value = s.carryForwardMax || 0;
 
 document.getElementById("after1YearOnly").value = (s.after1YearOnly ?? false).toString();
@@ -409,6 +417,7 @@ monthlyEnabled: document.getElementById("monthlyEnabled").value === "true",
 
 carryForward: document.getElementById("carryForward").value === "true",
 carryForwardMax: Number(document.getElementById("carryForwardMax").value) || 0,
+carryType: document.getElementById("carryType").value,
 
 after1YearOnly: document.getElementById("after1YearOnly").value === "true",
 after1YearDays: Number(document.getElementById("after1YearDays").value) || 0,
