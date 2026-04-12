@@ -257,7 +257,15 @@ let remaining = Math.max(0, totalWithCarry - used)
         : `<span style="color:#999;">—</span>`
     }
 </td>
-                <td>${carryType === "Monthly" ? "🟢 Monthly" : "🔵 Yearly"}</td>
+                <td>
+    ${
+        isCarryEnabled
+        ? (carryType === "Monthly"
+            ? "🟢 Monthly"
+            : "🔵 Yearly")
+        : "<span style='color:#999;'>—</span>"
+    }
+</td>
             </tr>
             `
         }
