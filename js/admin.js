@@ -81,67 +81,137 @@ async function autoResetLeaveCycle(){
 
   let startMonth = parseInt(data.startMonth)
   let lastResetYear = data.lastResetYear || 0
+  let lastResetMonth = data.lastResetMonth || 0
 
   let today = new Date()
   let currentMonth = today.getMonth() + 1
   let currentYear = today.getFullYear()
 
-  // ✅ Run only once per year
-  if(currentMonth === startMonth && lastResetYear !== currentYear){
+  // ✅ TRIGGERS
+  let runYearly = currentMonth === startMonth && lastResetYear !== currentYear
+  let runMonthly = lastResetMonth !== currentMonth
 
-    // 🔥 STEP 1: Get all leave types
-    const leaveTypesSnapshot = await db.collection("leave_types").get()
+  if(!runYearly && !runMonthly){
+    return
+  }
 
-    // 🔥 STEP 2: Get all employees
-    const users = await db.collection("users")
-      .where("role","==","employee")
-      .get()
+  // 🔥 GET DATA
+  const leaveTypesSnapshot = await db.collection("leave_types").get()
 
-    // 🔥 STEP 3: Update each user
-    for(const user of users.docs){
+  const usersSnapshot = await db.collection("users")
+    .where("role","==","employee")
+    .where("status","==","approved")
+    .get()
 
-      let oldBalance = user.data().leave_balance || {}
+  // ===============================
+  // PROCESS USERS
+  // ===============================
+  for(const userDoc of usersSnapshot.docs){
 
-      let newBalance = {}
+    let userData = userDoc.data()
 
-      leaveTypesSnapshot.forEach(doc=>{
-        let d = doc.data()
+    // ✅ Prevent duplicate yearly run ONLY
+    if(userData.lastCarryForward){
+      let last = new Date(userData.lastCarryForward.toDate())
 
-        let name = d.name
-        let max = parseInt(d.max_days) || 0
-
-        let carry = 0
-
-        // ✅ Carry Forward Logic
-        if(d.settings?.carryForward){
-          carry = Math.min(
-            oldBalance[name] || 0,
-            d.settings.carryForwardMax || 0
-          )
-        }
-
-        newBalance = {...newBalance, [name]: max + carry}
-      })
-
-      // ✅ Update user balance
-      await db.collection("users").doc(user.id).update({
-        leave_balance: newBalance
-      })
-
+      if(runYearly && last.getFullYear() === currentYear){
+        continue
+      }
     }
 
-    // 🔥 STEP 4: Save reset year
-    await settingsRef.update({
-      lastResetYear: currentYear
+    let oldBalance = userData.leave_balance || {}
+    let newBalance = {}
+    let carryData = {}
+
+    // ===============================
+    // PROCESS LEAVE TYPES
+    // ===============================
+    leaveTypesSnapshot.forEach(doc => {
+
+      let d = doc.data()
+      let name = d.name
+      let max = parseInt(d.max_days) || 0
+
+      let old = oldBalance[name] || 0
+      let maxCarry = parseInt(d.settings?.carryForwardMax) || 0
+
+      let carry = 0
+      let finalBalance = 0
+
+      // ===============================
+      // CARRY FORWARD LOGIC
+      // ===============================
+      if(d.settings?.carryForward){
+
+        carry = maxCarry > 0 ? Math.min(old, maxCarry) : old
+
+        // 🟢 MONTHLY
+        if(d.settings.carryType === "monthly" && runMonthly){
+
+          let monthlyAdd = max / 12
+          finalBalance = Math.floor(old + monthlyAdd)
+
+        }
+
+        // 🔵 YEARLY
+        else if(d.settings.carryType !== "monthly" && runYearly){
+
+          finalBalance = max + carry
+
+        }
+
+        // ⏸ NO CHANGE
+        else{
+          finalBalance = old
+        }
+
+      } else {
+        // ❌ NO CARRY FORWARD
+        finalBalance = max
+      }
+
+      // ✅ STORE REAL CARRY
+      carryData[name] = carry
+
+      // ✅ SAVE FINAL BALANCE
+      newBalance[name] = finalBalance
+
     })
 
-    alert("✅ Leave balances reset with carry forward")
+    // ===============================
+    // UPDATE USER
+    // ===============================
+    await db.collection("users").doc(userDoc.id).update({
+      leave_balance: newBalance,
+      carry_forward: carryData,
+      lastCarryForward: firebase.firestore.FieldValue.serverTimestamp()
+    })
+
+    // ===============================
+    // NOTIFICATION
+    // ===============================
+    await db.collection("notifications").add({
+      userId: userDoc.id,
+      role: "employee",
+      type: "carry_forward",
+      message: "📅 Your leave balance has been updated with carry forward",
+      read: false,
+      hidden: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
 
   }
 
+  // ===============================
+  // SAVE SYSTEM STATE
+  // ===============================
+  await settingsRef.update({
+    lastResetYear: runYearly ? currentYear : lastResetYear,
+    lastResetMonth: currentMonth
+  })
+
+  console.log("✅ Carry forward system executed")
 }
-
-
 
 // ===============================
 // DASHBOARD STATISTICS
@@ -771,9 +841,10 @@ leaveTypesSnapshot.forEach(doc=>{
     const data = doc.data()
 
     const leave = {
-        name: data.name,
-        max: parseInt(data.max_days) || 0
-    }
+    name: data.name,
+    max: parseInt(data.max_days) || 0,
+    settings: data.settings || {}   // 🔥 ADD THIS
+}
 
     leaveTypes.push(leave)
 
@@ -794,6 +865,7 @@ for(const userDoc of usersSnapshot.docs){
 
 const user = userDoc.data()
 const uid = userDoc.id
+let carryData = user.carry_forward || {}   // 🔥 NEW
 
 // Desktop row
 let row = `
@@ -842,7 +914,17 @@ let used = uniqueDates.size;
 // CALCULATIONS
 // ===============================
 const max = leave.max
-let remaining = max - used
+
+let settings = leave.settings || {}
+let isCarryEnabled = settings.carryForward === true
+
+// ✅ ONLY IF ENABLED
+let carry = isCarryEnabled ? (carryData[leave.name] || 0) : 0
+
+let totalWithCarry = isCarryEnabled ? (max + carry) : max
+let remaining = totalWithCarry - used
+
+
 
 if(remaining < 0) remaining = 0
 
@@ -872,8 +954,15 @@ else if(percent > 40){
 // ===============================
 row += `
 <td data-label="${leave.name}">
-${used} / ${max}
-<br><small>Remain: ${remaining}</small>
+<b>${totalWithCarry}</b> / ${remaining}
+<br>
+${
+    isCarryEnabled
+    ? `<small style="color:green;">
+            📦 +${carry} carried
+       </small>`
+    : `<small style="color:#999;">—</small>`
+}
 </td>
 `
 
@@ -885,7 +974,16 @@ cardHTML += `
 
 <div class="leave-top">
 <span>${leave.name}</span>
-<span>${used}/${max}</span>
+<span>${totalWithCarry}/${remaining}</span>
+${
+    isCarryEnabled
+    ? `<div style="font-size:12px;color:green;">
+            📦 +${carry} carried
+       </div>`
+    : `<div style="font-size:12px;color:#999;">
+            —
+       </div>`
+}
 </div>
 
 <div class="leave-remain">
