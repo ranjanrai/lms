@@ -25,6 +25,8 @@ if(!doc.exists){
 
 const data = doc.data()
 
+
+
 // ============================
 // PROBATION STATUS
 // ============================
@@ -169,69 +171,99 @@ async function loadLeaveBalance(uid){
 
     try {
 
+        // 🔥 0. GET USER DATA (FIXED)
+        const userDoc = await db.collection("users").doc(uid).get()
+        const userData = userDoc.data() || {}
+
+        const carryData = userData.carry_forward || {}
+
         // 🔥 1. Get all leave types
         const typeSnapshot = await db.collection("leave_types").get();
 
-        // 🔥 2. Get all approved leaves of user (ONLY ONCE)
+        // 🔥 2. Get all approved leaves (ONLY ONCE)
         const leaveSnapshot = await db.collection("leaves")
             .where("userId","==",uid)
             .where("status","==","approved")
             .get();
 
         // 🔥 3. Group leaves by type
-        let leaveMap = {};
+        let leaveMap = {}
 
         leaveSnapshot.forEach(doc => {
-            let data = doc.data();
+            let data = doc.data()
 
             if(!leaveMap[data.leaveType]){
-                leaveMap[data.leaveType] = [];
+                leaveMap[data.leaveType] = []
             }
 
-            leaveMap[data.leaveType].push(data);
-        });
+            leaveMap[data.leaveType].push(data)
+        })
 
         // 🔥 4. Loop each leave type
         for(const typeDoc of typeSnapshot.docs){
 
-            let typeData = typeDoc.data();
-            let leaveName = typeData.name;
-            let maxLeave = Number(typeData.max_days || 0);
+            let typeData = typeDoc.data()
+            let leaveName = typeData.name
+            let maxLeave = Number(typeData.max_days || 0)
 
-            let uniqueDates = new Set();
+            let leaves = leaveMap[leaveName] || []
+            let uniqueDates = new Set()
 
-            let leaves = leaveMap[leaveName] || [];
-
+            // 🔥 calculate used days
             leaves.forEach(d => {
 
-                let current = new Date(d.startDate);
-                let end = new Date(d.endDate);
+                let current = new Date(d.startDate)
+                let end = new Date(d.endDate)
 
                 while (current <= end) {
-
-                    let dateStr = current.toISOString().split("T")[0];
-                    uniqueDates.add(dateStr);
-
-                    current.setDate(current.getDate() + 1);
+                    let dateStr = current.toISOString().split("T")[0]
+                    uniqueDates.add(dateStr)
+                    current.setDate(current.getDate() + 1)
                 }
-            });
+            })
 
-            let used = uniqueDates.size;
-            let remaining = Math.max(0, maxLeave - used);
+            let used = uniqueDates.size
 
-            // 🔥 Append row
+            // 🔥 SETTINGS
+            let settings = typeData.settings || {}
+
+let isCarryEnabled = settings.carryForward === true
+
+let carryType = settings.carryType === "monthly" ? "Monthly" : "Yearly"
+
+// ✅ ONLY APPLY IF ENABLED
+let carry = isCarryEnabled ? (carryData[leaveName] || 0) : 0
+
+// ✅ TOTAL FIX
+let totalWithCarry = isCarryEnabled ? (maxLeave + carry) : maxLeave
+
+let remaining = Math.max(0, totalWithCarry - used)
+
+            // 🔥 UI ROW
             table.innerHTML += `
-                <tr>
-                    <td>${leaveName}</td>
-                    <td>${maxLeave}</td>
-                    <td>${used}</td>
-                    <td>${remaining}</td>
-                </tr>
-            `;
+            <tr>
+                <td>${leaveName}</td>
+                <td>${totalWithCarry}</td>
+                <td>${used}</td>
+                <td>${remaining}</td>
+              <td>
+    ${
+        isCarryEnabled
+        ? `<span style="color:${carry > 0 ? 'green':'gray'};">
+                +${carry}
+                <br>
+                <small>from last cycle</small>
+           </span>`
+        : `<span style="color:#999;">—</span>`
+    }
+</td>
+                <td>${carryType === "Monthly" ? "🟢 Monthly" : "🔵 Yearly"}</td>
+            </tr>
+            `
         }
 
     } catch (error) {
-        console.error("Error loading leave balance:", error);
+        console.error("Error loading leave balance:", error)
     }
 }
 
