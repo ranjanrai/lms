@@ -229,10 +229,19 @@ async function applyLeave() {
             usedDays += (e - s) / (1000 * 60 * 60 * 24) + 1;
         });
 
-        if ((usedDays + requestedDays) > maxDays) {
-            showToast(`Leave limit exceeded. Remaining: ${maxDays - usedDays}`)
-            return resetButton()
-        }
+       // 🔥 GET USER CARRY
+let carry = userData.carry_forward?.[leaveType] || 0;
+
+// 🔥 CHECK IF ENABLED
+let isCarryEnabled = settings.carryForward === true;
+
+// 🔥 FINAL LIMIT
+let totalAllowed = isCarryEnabled ? (maxDays + carry) : maxDays;
+
+if ((usedDays + requestedDays) > totalAllowed) {
+    showToast(`Leave limit exceeded. Remaining: ${totalAllowed - usedDays}`)
+    return resetButton()
+}
 
         // ===========================
         // MONTHLY LIMIT
