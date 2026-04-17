@@ -74,7 +74,11 @@
 <!-- CURRENT SETTINGS -->
 
 <div class="card fade-in">
-
+<label>Carry Forward Mode</label>
+<select id="carryMode">
+  <option value="manual">Manual</option>
+  <option value="auto">Automatic</option>
+</select>
 <h3>Current Leave Cycle</h3>
 
 <table>
@@ -174,6 +178,8 @@ Settings saved successfully
 
 </div>
 
+
+
 </div>
 
 <!-- FIREBASE -->
@@ -187,6 +193,8 @@ Settings saved successfully
 <script src="js/firebase.js"></script>
 
 <script src="js/leave-settings.js"></script>
+<script src="js/carry-forward.js"></script>
+
 
 <script>
 
