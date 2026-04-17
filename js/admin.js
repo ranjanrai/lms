@@ -1059,6 +1059,9 @@ async function loadUsersOnce(){
 // LOAD LEAVE BALANCE (OPTIMIZED)
 // ===============================
 
+let balanceRowMap = new Map()
+let balanceCardMap = new Map()
+
 async function loadLeaveBalance(){
 
 const header = document.getElementById("leaveHeader")
@@ -1068,8 +1071,6 @@ const cards = document.getElementById("leaveBalanceCards")
 if(!header || !table) return
 
 header.innerHTML = `<th>Employee</th><th>Email</th>`
-table.innerHTML = ""
-if(cards) cards.innerHTML = ""
 
 // ===============================
 // 1. GET LEAVE TYPES (ONCE)
@@ -1099,7 +1100,6 @@ db.collection("leaves")
 
 let leaveMap = {}
 
-// 🔥 BUILD MAP
 leaveSnap.forEach(doc=>{
     let d = doc.data()
 
@@ -1109,32 +1109,28 @@ leaveSnap.forEach(doc=>{
     leaveMap[d.userId][d.leaveType].push(d)
 })
 
-// 🔥 CLEAR UI
-table.innerHTML = ""
-if(cards) cards.innerHTML = ""
-
 // ===============================
-// 3. LOOP USERS FROM CACHE (🔥 FIX)
+// LOOP USERS
 // ===============================
 for(const user of userCache){
 
 const uid = user.id
 let carryData = user.carry_forward || {}
 
-let row = `
-<tr class="fade-in">
+let rowHTML = `
+<tr>
 <td>${user.name}</td>
 <td>${user.email}</td>
 `
 
 let cardHTML = `
-<div class="leave-card fade-in">
+<div class="leave-card">
 <h3>${user.name}</h3>
 <p>${user.email}</p>
 `
 
 // ===============================
-// 4. LOOP LEAVE TYPES
+// LOOP LEAVE TYPES
 // ===============================
 for(const leave of leaveTypes){
 
@@ -1154,9 +1150,6 @@ leaves.forEach(l=>{
 
 let used = uniqueDates.size
 
-// ===============================
-// CALCULATIONS
-// ===============================
 const max = leave.max
 let settings = leave.settings || {}
 let isCarryEnabled = settings.carryForward === true
@@ -1170,8 +1163,8 @@ if(isCarryEnabled){
     }
 }
 
-let totalWithCarry = isCarryEnabled ? (max + carry) : max
-let remaining = Math.max(0, totalWithCarry - used)
+let total = isCarryEnabled ? (max + carry) : max
+let remaining = Math.max(0, total - used)
 
 let percent = max > 0 ? (used / max) * 100 : 0
 if(percent > 100) percent = 100
@@ -1193,11 +1186,11 @@ else if(percent > 40){
 }
 
 // ===============================
-// UI BUILD
+// TABLE UI
 // ===============================
-row += `
-<td>
-<b>${totalWithCarry}</b> / ${remaining}
+rowHTML += `
+<td data-label="${leave.name}">
+<b>${total}</b> / ${remaining}
 <br>
 ${
 isCarryEnabled
@@ -1207,12 +1200,19 @@ isCarryEnabled
 </td>
 `
 
+// ===============================
+// CARD UI
+// ===============================
 cardHTML += `
 <div class="leave-item">
 
+<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:4px;">
+<div class="leave-name">${leave.name}</div>
+</div>
+
 <div class="leave-top">
-<span>${leave.name}</span>
-<span>${totalWithCarry}/${remaining}</span>
+<span>Total: ${total}</span>
+<span>Remaining: ${remaining}</span>
 </div>
 
 <div class="leave-remain">
@@ -1225,25 +1225,53 @@ Remaining: ${remaining} (${statusText})
 
 </div>
 `
-
 }
 
-// CLOSE ROW
-row += `</tr>`
+// CLOSE
+rowHTML += `</tr>`
 cardHTML += `</div>`
 
-table.innerHTML += row
+// ===============================
+// UPDATE TABLE (NO CLEAR)
+// ===============================
+let existingRow = balanceRowMap.get(uid)
 
+let temp = document.createElement("tbody")
+temp.innerHTML = rowHTML
+let newRow = temp.firstElementChild
+
+if(existingRow){
+    table.replaceChild(newRow, existingRow)
+}else{
+    table.appendChild(newRow)
+}
+
+balanceRowMap.set(uid, newRow)
+
+// ===============================
+// UPDATE CARDS (MOBILE)
+// ===============================
 if(cards){
-    let div = document.createElement("div")
-    div.innerHTML = cardHTML
-    cards.appendChild(div.firstElementChild)
+
+let existingCard = balanceCardMap.get(uid)
+
+let div = document.createElement("div")
+div.innerHTML = cardHTML
+let newCard = div.firstElementChild
+
+if(existingCard){
+    cards.replaceChild(newCard, existingCard)
+}else{
+    cards.appendChild(newCard)
+}
+
+balanceCardMap.set(uid, newCard)
+
 }
 
 }
 
 })
-
 }
 
 function getIcon(name){
