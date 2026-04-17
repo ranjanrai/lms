@@ -1,11 +1,14 @@
 
+function saveCache(key, data){
+    localStorage.setItem(key, JSON.stringify(data))
+}
 
+function getCache(key){
+    let data = localStorage.getItem(key)
+    return data ? JSON.parse(data) : null
+}
 // =============================
 // CHECK LOGIN
-// =============================
-
-// =============================
-// CHECK LOGIN (SECURE)
 // =============================
 
 auth.onAuthStateChanged(async function(user){
@@ -25,8 +28,6 @@ if(!doc.exists){
 
 const data = doc.data()
 
-
-
 // ============================
 // PROBATION STATUS
 // ============================
@@ -34,33 +35,12 @@ const data = doc.data()
 const banner = document.getElementById("probationBanner")
 
 if(data.probation === true){
-
-    banner.style.display = "block"
-    banner.style.background = "#fff3cd"
-    banner.style.color = "#856404"
-    banner.innerHTML = "🟡 You are currently on probation. Leave limits may apply."
-
-}else{
-
-    banner.style.display = "block"
-    banner.style.background = "#d4edda"
-    banner.style.color = "#155724"
-    banner.innerHTML = "🟢 You are a confirmed employee."
-
-}
-
-if(data.probation === true){
-
     banner.style.display = "block"
     banner.style.background = "#fff3cd"
     banner.style.color = "#856404"
     banner.innerHTML = "🟡 You are on probation. Leave limits apply."
-
 }else{
     banner.style.display = "none"
-}
-if(data.probation === undefined){
-    data.probation = false
 }
 
 // 🚫 BLOCK NON-EMPLOYEE
@@ -71,7 +51,7 @@ if(data.role !== "employee"){
     return
 }
 
-// 🚫 BLOCK NON-APPROVED USERS (THIS IS YOUR LINE)
+// 🚫 BLOCK NON-APPROVED USERS
 if(data.status !== "approved"){
     alert("Your account is not approved or has been removed")
     await auth.signOut()
@@ -82,12 +62,10 @@ if(data.status !== "approved"){
 // ✅ ALLOW ACCESS
 const uid = user.uid
 
+// 🔥 ONLY REQUIRED FUNCTIONS
 loadDashboard(uid)
 loadLeaveBalance(uid)
-// ✅ ADD THESE HERE
 loadNotifications(uid)
-loadNotificationCount(uid)
-// ✅ ADD THIS
 loadLeaveInstructions()
 
 })
@@ -97,184 +75,383 @@ loadLeaveInstructions()
 // LOAD DASHBOARD DATA
 // =============================
 
+let leaveRowMap = new Map()
+
 function loadDashboard(uid){
 
-let total = 0
-let pending = 0
-let approved = 0
-
 const table = document.getElementById("leaveTable")
+if(!table) return
 
+const cacheKey = "dashboard_" + uid
+
+// ===============================
+// 🔥 1. LOAD FROM CACHE
+// ===============================
+const cached = localStorage.getItem(cacheKey)
+
+if(cached){
+
+table.innerHTML = ""
+leaveRowMap.clear()
+
+JSON.parse(cached).forEach(item=>{
+
+let tr = document.createElement("tr")
+tr.innerHTML = item.html
+tr.id = "leave-"+item.id
+
+table.appendChild(tr)
+
+// ✅ store full object (IMPORTANT)
+leaveRowMap.set(item.id, {
+    row: tr,
+    days: item.days,
+    status: item.status
+})
+
+})
+
+}
+
+// ===============================
+// 🔥 2. REAL-TIME FIRESTORE
+// ===============================
 db.collection("leaves")
 .where("userId","==",uid)
 .onSnapshot(snapshot=>{
 
-table.innerHTML = ""
-
-total = 0
-pending = 0
-approved = 0
-
-snapshot.forEach(doc=>{
-
-let data = doc.data()
-
-total++
-
-if(data.status === "pending"){
-pending++
+// 🔥 first load reset
+if(snapshot.metadata.fromCache === false && snapshot.docChanges().length === snapshot.size){
+    leaveRowMap.clear()
+    table.innerHTML = ""
 }
 
-if(data.status === "approved"){
-approved++
-}
+snapshot.docChanges().forEach(change=>{
+
+const doc = change.doc
+const data = doc.data()
+const id = doc.id
 
 let start = new Date(data.startDate)
 let end = new Date(data.endDate)
 
-// calculate days
-let diffTime = end - start
-let days = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1
+let days = Math.floor((end - start)/(1000*60*60*24)) + 1
 
-let row = `
-<tr>
+function createRow(){
+
+let tr = document.createElement("tr")
+tr.id = "leave-"+id
+
+tr.innerHTML = `
 <td>${data.leaveType}</td>
 <td>${data.startDate}</td>
 <td>${data.endDate}</td>
-<td>${days}</td>   <!-- ✅ SHOW DAYS -->
+<td>${days}</td>
 <td>${data.status}</td>
-</tr>
 `
 
-table.innerHTML += row
+return tr
+}
 
+// ===============================
+// 🟢 ADD
+// ===============================
+if(change.type === "added"){
+
+if(!leaveRowMap.has(id)){
+
+let tr = createRow()
+
+leaveRowMap.set(id, {
+    row: tr,
+    days: days,
+    status: data.status
 })
 
-document.getElementById("totalLeaves").innerText = total
-document.getElementById("pendingLeaves").innerText = pending
-document.getElementById("approvedLeaves").innerText = approved
+table.prepend(tr)
 
+}
+
+}
+
+// ===============================
+// 🟡 UPDATE
+// ===============================
+else if(change.type === "modified"){
+
+let old = leaveRowMap.get(id)
+
+if(old && old.row && old.row.parentNode){
+
+let newRow = createRow()
+
+table.replaceChild(newRow, old.row)
+
+leaveRowMap.set(id, {
+    row: newRow,
+    days: days,
+    status: data.status
 })
 
 }
 
+}
 
+// ===============================
+// 🔴 REMOVE
+// ===============================
+else if(change.type === "removed"){
 
+let obj = leaveRowMap.get(id)
+
+if(obj){
+obj.row.remove()
+leaveRowMap.delete(id)
+}
+
+}
+
+})
+
+// ===============================
+// 🔥 3. CALCULATE STATS (DAYS)
+// ===============================
+// ===============================
+// ✅ CORRECT STATS CALCULATION
+// ===============================
+let total = 0
+let pending = 0
+let approved = 0
+
+snapshot.forEach(doc => {
+    let data = doc.data()
+
+    total++
+
+    if(data.status === "pending"){
+        pending++
+    }
+
+    if(data.status === "approved"){
+        approved++
+    }
+})
+
+// update UI
+document.getElementById("totalLeaves").innerText = total
+document.getElementById("pendingLeaves").innerText = pending
+document.getElementById("approvedLeaves").innerText = approved
+
+// ===============================
+// 🔥 4. SAVE CACHE (FULL DATA)
+// ===============================
+let cacheData = []
+
+leaveRowMap.forEach((item, id)=>{
+
+cacheData.push({
+    id: id,
+    html: item.row.innerHTML,
+    days: item.days,
+    status: item.status
+})
+
+})
+
+localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+
+})
+
+}
 // =============================
 // LOAD LEAVE BALANCE (OPTIMIZED)
 // =============================
 
-async function loadLeaveBalance(uid){
+let leaveBalanceRowMap = new Map()
 
-    const table = document.getElementById("leaveBalanceTable");
-    table.innerHTML = "";
+function loadLeaveBalance(uid){
 
-    try {
+const table = document.getElementById("leaveBalanceTable")
+if(!table) return
 
-        // 🔥 0. GET USER DATA (FIXED)
-        const userDoc = await db.collection("users").doc(uid).get()
-        const userData = userDoc.data() || {}
+const cacheKey = "leaveBalance_" + uid
 
-        const carryData = userData.carry_forward || {}
+// ===============================
+// 🔥 1. LOAD FROM CACHE (SYNC MAP)
+// ===============================
+const cached = localStorage.getItem(cacheKey)
 
-        // 🔥 1. Get all leave types
-        const typeSnapshot = await db.collection("leave_types").get();
+if(cached){
 
-        // 🔥 2. Get all approved leaves (ONLY ONCE)
-        const leaveSnapshot = await db.collection("leaves")
-            .where("userId","==",uid)
-            .where("status","==","approved")
-            .get();
+table.innerHTML = ""
+leaveBalanceRowMap.clear()
 
-        // 🔥 3. Group leaves by type
+JSON.parse(cached).forEach(rowHTML=>{
+
+    let tr = document.createElement("tr")
+    tr.innerHTML = rowHTML
+
+    let name = tr.children[0].innerText
+    tr.id = "balance-" + name
+
+    table.appendChild(tr)
+    leaveBalanceRowMap.set(name, tr)
+
+})
+
+}else{
+    table.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>"
+}
+
+// ===============================
+// 🔥 2. LOAD STATIC DATA (ONCE)
+// ===============================
+Promise.all([
+    db.collection("leave_types").get(),
+    db.collection("users").doc(uid).get()
+]).then(([typeSnap, userDoc])=>{
+
+    let leaveTypes = []
+    let carryData = userDoc.data()?.carry_forward || {}
+
+    typeSnap.forEach(doc=>{
+        let d = doc.data()
+        leaveTypes.push({
+            name: d.name,
+            max: Number(d.max_days || 0),
+            settings: d.settings || {}
+        })
+    })
+
+    // ===============================
+    // 🔥 3. REAL-TIME LEAVES
+    // ===============================
+    db.collection("leaves")
+    .where("userId","==",uid)
+    .where("status","==","approved")
+    .onSnapshot(snapshot=>{
+
+        // 🔥 FIRST REAL LOAD RESET
+        if(snapshot.metadata.fromCache === false){
+            leaveBalanceRowMap.clear()
+            table.innerHTML = ""
+        }
+
         let leaveMap = {}
 
-        leaveSnapshot.forEach(doc => {
-            let data = doc.data()
-
-            if(!leaveMap[data.leaveType]){
-                leaveMap[data.leaveType] = []
-            }
-
-            leaveMap[data.leaveType].push(data)
+        snapshot.forEach(doc=>{
+            let d = doc.data()
+            if(!leaveMap[d.leaveType]) leaveMap[d.leaveType] = []
+            leaveMap[d.leaveType].push(d)
         })
 
-        // 🔥 4. Loop each leave type
-        for(const typeDoc of typeSnapshot.docs){
+        let cacheData = []
 
-            let typeData = typeDoc.data()
-            let leaveName = typeData.name
-            let maxLeave = Number(typeData.max_days || 0)
+        // ===============================
+        // 🔥 4. UPDATE UI
+        // ===============================
+        leaveTypes.forEach(type=>{
 
-            let leaves = leaveMap[leaveName] || []
+            const name = type.name
+            const max = type.max
+            const settings = type.settings
+
+            let leaves = leaveMap[name] || []
+
             let uniqueDates = new Set()
 
-            // 🔥 calculate used days
-            leaves.forEach(d => {
+            leaves.forEach(l=>{
+                let current = new Date(l.startDate)
+                let end = new Date(l.endDate)
 
-                let current = new Date(d.startDate)
-                let end = new Date(d.endDate)
-
-                while (current <= end) {
-                    let dateStr = current.toISOString().split("T")[0]
-                    uniqueDates.add(dateStr)
-                    current.setDate(current.getDate() + 1)
+                while(current <= end){
+                    uniqueDates.add(current.toISOString().split("T")[0])
+                    current.setDate(current.getDate()+1)
                 }
             })
 
             let used = uniqueDates.size
 
-            // 🔥 SETTINGS
-            let settings = typeData.settings || {}
+            let isCarryEnabled = settings.carryForward === true
+            let carryType = settings.carryType || null
 
-let isCarryEnabled = settings.carryForward === true
+            let carry = 0
+            if(isCarryEnabled){
+                let rawCarry = carryData[name] || 0
+                if(rawCarry > 0 && used > 0){
+                    carry = rawCarry
+                }
+            }
 
-let carryType = settings.carryType === "monthly" ? "Monthly" : "Yearly"
+            let total = isCarryEnabled ? (max + carry) : max
+            let remaining = Math.max(0, total - used)
 
-// ✅ ONLY APPLY IF ENABLED
-let carry = isCarryEnabled ? (carryData[leaveName] || 0) : 0
+            // ===============================
+            // CREATE ROW
+            // ===============================
+            function createRow(){
+                let tr = document.createElement("tr")
+                tr.id = "balance-" + name
 
-// ✅ TOTAL FIX
-let totalWithCarry = isCarryEnabled ? (maxLeave + carry) : maxLeave
-
-let remaining = Math.max(0, totalWithCarry - used)
-
-            // 🔥 UI ROW
-            table.innerHTML += `
-            <tr>
-                <td>${leaveName}</td>
-                <td>${totalWithCarry}</td>
-                <td>${used}</td>
-                <td>${remaining}</td>
-              <td>
-    ${
-        isCarryEnabled
-        ? `<span style="color:${carry > 0 ? 'green':'gray'};">
-                +${carry}
-                <br>
-                <small>from last cycle</small>
-           </span>`
-        : `<span style="color:#999;">—</span>`
-    }
-</td>
-                <td>
-    ${
-        isCarryEnabled
-        ? (carryType === "Monthly"
-            ? "🟢 Monthly"
-            : "🔵 Yearly")
-        : "<span style='color:#999;'>—</span>"
-    }
-</td>
-            </tr>
-            `
-        }
-
-    } catch (error) {
-        console.error("Error loading leave balance:", error)
-    }
+                tr.innerHTML = `
+<td>${name}</td>
+<td><b>${total}</b> / ${remaining}</td>
+<td>${used}</td>
+<td>${remaining}</td>
+<td>
+${
+isCarryEnabled
+? `<span style="color:${carry>0?'green':'#999'};">📦 +${carry}</span>`
+: `<span style="color:#999;">—</span>`
 }
+</td>
+<td>
+${
+isCarryEnabled
+? (carryType === "monthly" ? "🟢 Monthly" : "🔵 Yearly")
+: "-"
+}
+</td>
+`
+                return tr
+            }
 
+            // ===============================
+            // ADD / UPDATE (SAFE)
+            // ===============================
+            let existingRow = leaveBalanceRowMap.get(name)
+
+            if(existingRow && existingRow.parentNode){
+
+                let newRow = createRow()
+                table.replaceChild(newRow, existingRow)
+                leaveBalanceRowMap.set(name, newRow)
+
+            }else{
+
+                let newRow = createRow()
+                table.appendChild(newRow)
+                leaveBalanceRowMap.set(name, newRow)
+
+            }
+
+            // 🔥 CACHE SAVE
+            let rowRef = leaveBalanceRowMap.get(name)
+            cacheData.push(rowRef.innerHTML)
+
+        })
+
+        // ===============================
+        // 🔥 5. SAVE CACHE
+        // ===============================
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+
+    })
+
+}).catch(error=>{
+    console.error("Leave balance error:", error)
+})
+}
 function loadNotifications(uid){
 
     const list = document.getElementById("notificationList")
@@ -524,4 +701,14 @@ window.onclick = function(event){
   if(event.target === modal){
     modal.style.display = "none"
   }
+}
+
+async function disableButtonIfAuto(){
+
+  const doc = await db.collection("leave_settings").doc("cycle").get();
+
+  if(doc.exists && doc.data().carryMode === "auto"){
+    console.log("Auto mode enabled");
+  }
+
 }
