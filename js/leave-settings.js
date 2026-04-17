@@ -18,13 +18,14 @@ function saveLeaveSettings(){
 
   db.collection("leave_settings")
     .doc("cycle")
-    .set({
-      startMonth: startMonth,
-      startYear: startYear,
-      endMonth: endMonth,
-      endYear: endYear,
-      updatedAt: new Date()   // ✅ useful for tracking
-    })
+.set({
+  startMonth,
+  startYear,
+  endMonth,
+  endYear,
+  carryMode: document.getElementById("carryMode").value,
+  updatedAt: new Date()
+}, { merge: true })
     .then(()=>{
 
       const msg = document.getElementById("successMsg");
@@ -70,6 +71,7 @@ function loadLeaveSettings(){
         document.getElementById("startYear").value = data.startYear || "";
         document.getElementById("endMonth").value = data.endMonth || "";
         document.getElementById("endYear").value = data.endYear || "";
+        document.getElementById("carryMode").value = data.carryMode || "manual";
 
         // ✅ Update table
         if(table){
