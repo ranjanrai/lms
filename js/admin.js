@@ -1,5 +1,16 @@
+function calculateDays(start, end) {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+
+    const diffTime = endDate - startDate
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+
+    return diffDays + 1
+}
+
 let leaveCount = {}
 let userMap = {}
+let leaveRequestMap = new Map();
 
 // ===============================
 // CHECK ADMIN LOGIN (SECURE)
@@ -59,7 +70,11 @@ autoResetLeaveCycle()
 loadStats()
 loadEmployees()
 loadLeaveRequests()
+
+// 🔥 IMPORTANT FIX
+await loadUsersOnce()
 loadLeaveBalance()
+
 loadNotifications(user)
 
 })
@@ -72,133 +87,180 @@ loadNotifications(user)
 
 async function autoResetLeaveCycle(){
 
-  const settingsRef = db.collection("leave_settings").doc("cycle")
-  const docSnap = await settingsRef.get()
+  const settingsRef = db.collection("leave_settings").doc("cycle");
+  const docSnap = await settingsRef.get();
 
-  if(!docSnap.exists) return
+  if(!docSnap.exists) return;
 
-  let data = docSnap.data()
+  const data = docSnap.data();
 
-  let startMonth = parseInt(data.startMonth)
-  let lastResetYear = data.lastResetYear || 0
-  let lastResetMonth = data.lastResetMonth || 0
+  const startMonth = parseInt(data.startMonth);
+  const lastResetYear = data.lastResetYear || 0;
+  const lastResetMonth = data.lastResetMonth || 0;
 
-  let today = new Date()
-  let currentMonth = today.getMonth() + 1
-  let currentYear = today.getFullYear()
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
 
-  // ✅ TRIGGERS
-  let runYearly = currentMonth === startMonth && lastResetYear !== currentYear
-  let runMonthly = lastResetMonth !== currentMonth
+  const runYearly = currentMonth === startMonth && lastResetYear !== currentYear;
+  const runMonthly = lastResetMonth !== currentMonth;
 
-  if(!runYearly && !runMonthly){
-    return
-  }
+  if(!runYearly && !runMonthly) return;
 
-  // 🔥 GET DATA
-  const leaveTypesSnapshot = await db.collection("leave_types").get()
+  console.log("🔄 Running new cycle reset...");
+
+  const leaveTypesSnapshot = await db.collection("leave_types").get();
 
   const usersSnapshot = await db.collection("users")
     .where("role","==","employee")
     .where("status","==","approved")
-    .get()
+    .get();
 
-  // ===============================
-  // PROCESS USERS
-  // ===============================
+  // 🔥 CYCLE RANGE (IMPORTANT)
+  const cycleStart = new Date(currentYear - 1, startMonth - 1, 1);
+  const cycleEnd = new Date(currentYear, startMonth - 1, 0);
+
   for(const userDoc of usersSnapshot.docs){
 
-    let userData = userDoc.data()
+    const uid = userDoc.id;
+    let carryData = {};
+    let newBalance = {};
 
-    // ✅ Prevent duplicate yearly run ONLY
-    if(userData.lastCarryForward){
-      let last = new Date(userData.lastCarryForward.toDate())
+    // 🔥 GET USER LEAVES
+    const leaveSnapshot = await db.collection("leaves")
+      .where("userId","==",uid)
+      .where("status","==","approved")
+      .get();
 
-      if(runYearly && last.getFullYear() === currentYear){
-        continue
+    let leaveMap = {};
+
+    leaveSnapshot.forEach(doc=>{
+      let d = doc.data();
+
+      if(!leaveMap[d.leaveType]){
+        leaveMap[d.leaveType] = [];
       }
-    }
 
-    let oldBalance = userData.leave_balance || {}
-    let newBalance = {}
-    let carryData = {}
+      leaveMap[d.leaveType].push(d);
+    });
 
     // ===============================
-    // PROCESS LEAVE TYPES
+    // PROCESS EACH LEAVE TYPE
     // ===============================
-    leaveTypesSnapshot.forEach(doc => {
+    leaveTypesSnapshot.forEach(typeDoc => {
 
-      let d = doc.data()
-      let name = d.name
-      let max = parseInt(d.max_days) || 0
+      const type = typeDoc.data();
+      const name = type.name;
+      const max = parseInt(type.max_days) || 0;
+      const settings = type.settings || {};
 
-      let old = oldBalance[name] || 0
-      let maxCarry = parseInt(d.settings?.carryForwardMax) || 0
+      let carry = 0;
+      let finalBalance = max;
 
-      let carry = 0
-      let finalBalance = 0
+      // ❌ skip if carry disabled
+      if(settings.carryForward !== true){
+        newBalance[name] = max;
+        return;
+      }
 
-      // ===============================
-      // CARRY FORWARD LOGIC
-      // ===============================
-      if(d.settings?.carryForward){
+      let startDate = new Date(cycleStart);
+      let endDate = new Date(cycleEnd);
 
-        carry = maxCarry > 0 ? Math.min(old, maxCarry) : old
+      // 🔥 MONTHLY MODE
+      if(settings.carryType === "monthly"){
 
-        // 🟢 MONTHLY
-        if(d.settings.carryType === "monthly" && runMonthly){
+        if(settings.monthlyEnabled !== true){
+          newBalance[name] = max;
+          return;
+        }
 
-          let monthlyAdd = max / 12
-          finalBalance = Math.floor(old + monthlyAdd)
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth()+1, 0);
+      }
 
+      let usedDates = new Set();
+      let leaves = leaveMap[name] || [];
+
+      leaves.forEach(l => {
+
+        let leaveStart = new Date(l.startDate);
+        let leaveEnd = new Date(l.endDate);
+
+        if(leaveEnd < startDate || leaveStart > endDate) return;
+
+        let current = new Date(leaveStart);
+
+        while(current <= leaveEnd){
+
+          if(current >= startDate && current <= endDate){
+            usedDates.add(current.toISOString().split("T")[0]);
+          }
+
+          current.setDate(current.getDate()+1);
+        }
+
+      });
+
+      let used = usedDates.size;
+      let remaining = Math.max(0, max - used);
+
+      // ❌ IMPORTANT FIX (your bug)
+      if(leaves.length === 0 || remaining <= 0){
+        carry = 0;
+        finalBalance = max;
+      }else{
+
+        let maxCarry = settings.carryForwardMax ?? remaining;
+
+        if(settings.carryForwardMax === 0){
+          carry = 0;
+        }else{
+          carry = Math.min(remaining, maxCarry);
         }
 
         // 🔵 YEARLY
-        else if(d.settings.carryType !== "monthly" && runYearly){
-
-          finalBalance = max + carry
-
+        if(settings.carryType !== "monthly" && runYearly){
+          finalBalance = max + carry;
         }
 
-        // ⏸ NO CHANGE
+        // 🟢 MONTHLY
+        else if(settings.carryType === "monthly" && runMonthly){
+          let monthlyAdd = max / 12;
+          finalBalance = Math.floor(max + carry + monthlyAdd);
+        }
+
         else{
-          finalBalance = old
+          finalBalance = max;
         }
 
-      } else {
-        // ❌ NO CARRY FORWARD
-        finalBalance = max
       }
 
-      // ✅ STORE REAL CARRY
-      carryData[name] = carry
+      carryData[name] = carry;
+      newBalance[name] = finalBalance;
 
-      // ✅ SAVE FINAL BALANCE
-      newBalance[name] = finalBalance
-
-    })
+    });
 
     // ===============================
     // UPDATE USER
     // ===============================
-    await db.collection("users").doc(userDoc.id).update({
+    await db.collection("users").doc(uid).update({
       leave_balance: newBalance,
       carry_forward: carryData,
       lastCarryForward: firebase.firestore.FieldValue.serverTimestamp()
-    })
+    });
 
     // ===============================
     // NOTIFICATION
     // ===============================
     await db.collection("notifications").add({
-      userId: userDoc.id,
+      userId: uid,
       role: "employee",
       type: "carry_forward",
-      message: "📅 Your leave balance has been updated with carry forward",
+      message: "📅 Your leave balance updated with carry forward",
       read: false,
       hidden: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    })
+    });
 
   }
 
@@ -208,14 +270,11 @@ async function autoResetLeaveCycle(){
   await settingsRef.update({
     lastResetYear: runYearly ? currentYear : lastResetYear,
     lastResetMonth: currentMonth
-  })
+  });
 
-  console.log("✅ Carry forward system executed")
+  console.log("✅ New carry forward system executed");
+
 }
-
-// ===============================
-// DASHBOARD STATISTICS
-// ===============================
 
 function loadStats(){
 
@@ -259,23 +318,29 @@ function loadEmployees(){
 const employeeTable = document.getElementById("employeeTable")
 if(!employeeTable) return
 
+let rowMap = {} // 🔥 store rows by userId
+
 db.collection("users")
 .where("role","==","employee")
 .onSnapshot(snapshot=>{
 
-employeeTable.innerHTML=""
+snapshot.docChanges().forEach(change=>{
 
-snapshot.forEach(doc=>{
+const doc = change.doc
+const data = doc.data()
+const id = doc.id
 
-let data = doc.data()
+// ===============================
+// BUILD ROW FUNCTION
+// ===============================
+function createRow(){
 
-// ✅ ALWAYS USE THIS
 let status = data.status || "pending"
 
 let action = ""
 let statusBadge = ""
 
-// 🎨 STATUS
+// STATUS
 if(status === "approved"){
     statusBadge = `<span style="color:green;font-weight:bold;">Approved</span>`
 }
@@ -285,23 +350,19 @@ else if(status === "pending"){
 else if(status === "deleted"){
     statusBadge = `<span style="color:red;font-weight:bold;">Deleted</span>`
 }
-else{
-    return
-}
+else return null
 
-// 🟡 Pending → approve buttons
+// ACTIONS
 if(status === "pending"){
     action = `
-        <button onclick="approveEmployee('${doc.id}')">Approve</button>
-        <button onclick="rejectEmployee('${doc.id}')">Reject</button>
+        <button onclick="approveEmployee('${id}')">Approve</button>
+        <button onclick="rejectEmployee('${id}')">Reject</button>
     `
 }
-
-// 🟢 Approved → controls
 else if(status === "approved"){
     action = `
 <div style="display:flex;align-items:center;gap:12px;">
-    <button onclick="resetLeave('${doc.id}')">🔄</button>
+    <button onclick="resetLeave('${id}')">🔄</button>
 
     <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:12px;">Probation</span>
@@ -309,48 +370,86 @@ else if(status === "approved"){
         <label class="switch">
             <input type="checkbox"
                 ${data.probation === true ? "checked" : ""}
-                onchange="setProbation('${doc.id}', this.checked)">
+                onchange="setProbation('${id}', this.checked)">
             <span class="slider"></span>
         </label>
     </div>
 
-    <button onclick="deleteEmployee('${doc.id}')">🗑</button>
+    <button onclick="deleteEmployee('${id}')">🗑</button>
 </div>
 `
 }
-
-// 🔴 Deleted → restore
 else if(status === "deleted"){
     action = `
-        <button onclick="restoreEmployee('${doc.id}')">♻ Restore</button>
-        <button onclick="permanentDeleteEmployee('${doc.id}')">❌ Delete</button>
+        <button onclick="restoreEmployee('${id}')">♻ Restore</button>
+        <button onclick="permanentDeleteEmployee('${id}')">❌ Delete</button>
     `
 }
 
-// ✅ FIXED STATUS TEXT
+// EXTRA STATUS
 let extraStatus = ""
-
 if(status === "approved"){
     extraStatus = data.probation
         ? "<span style='color:orange;'>🟡 Probation</span>"
         : "<span style='color:green;'>🟢 Confirmed</span>"
 }
 
-// ✅ ROW
-let row = `
-<tr>
+// CREATE TR
+let tr = document.createElement("tr")
+tr.innerHTML = `
 <td>${data.name}</td>
 <td>${data.email}</td>
 <td>
   ${statusBadge}
-  <br>
-  ${extraStatus}
+  <br>${extraStatus}
 </td>
 <td>${action}</td>
-</tr>
 `
 
-employeeTable.innerHTML += row
+return tr
+}
+
+// ===============================
+// HANDLE CHANGES
+// ===============================
+
+// 🟢 ADDED
+if(change.type === "added"){
+
+    let tr = createRow()
+    if(!tr) return
+
+    tr.classList.add("fade-in")
+
+    rowMap[id] = tr
+    employeeTable.appendChild(tr)
+}
+
+// 🟡 MODIFIED
+else if(change.type === "modified"){
+
+    let oldRow = rowMap[id]
+    if(oldRow){
+
+        let newRow = createRow()
+        if(!newRow) return
+
+        newRow.classList.add("fade-in")
+
+        employeeTable.replaceChild(newRow, oldRow)
+        rowMap[id] = newRow
+    }
+}
+
+// 🔴 REMOVED
+else if(change.type === "removed"){
+
+    let row = rowMap[id]
+    if(row){
+        row.remove()
+        delete rowMap[id]
+    }
+}
 
 })
 
@@ -360,56 +459,65 @@ employeeTable.innerHTML += row
 // ===============================
 // APPROVE EMPLOYEE
 // ===============================
+let approvingUsers = new Set(); // 🔥 prevent spam clicks
+
 async function approveEmployee(uid) {
 
-    // 🔒 Confirm action
+    if (approvingUsers.has(uid)) return; // 🚫 already processing
+
     if (!confirm("Approve employee and set probation?")) return;
+
+    approvingUsers.add(uid);
 
     try {
 
-        // 🔍 1. Get user data
         const userRef = db.collection("users").doc(uid);
-        const userSnap = await userRef.get();
 
-        if (!userSnap.exists) {
-            alert("❌ User not found");
-            return;
-        }
+        // ===============================
+        // 🔥 TRANSACTION (VERY IMPORTANT)
+        // ===============================
+        await db.runTransaction(async (transaction) => {
 
-        const userData = userSnap.data();
+            const userSnap = await transaction.get(userRef);
 
-        // 🚫 Prevent duplicate approval
-        if (userData.status === "approved") {
-            alert("⚠ Employee already approved");
-            return;
-        }
+            if (!userSnap.exists) {
+                throw new Error("User not found");
+            }
 
-        // 🔥 2. Get leave types
-        const leaveTypesSnapshot = await db.collection("leave_types").get();
+            const userData = userSnap.data();
 
-        if (leaveTypesSnapshot.empty) {
-            alert("❌ No leave types found. Please create leave types first.");
-            return;
-        }
+            // 🚫 SAFE CHECK (atomic)
+            if (userData.status === "approved") {
+                throw new Error("Already approved");
+            }
 
-        // 📊 3. Build leave balance
-        let leaveBalance = {};
+            // 🔥 get leave types (outside transaction is better but safe here small scale)
+            const leaveTypesSnapshot = await db.collection("leave_types").get();
 
-        leaveTypesSnapshot.forEach(doc => {
-            const leave = doc.data();
+            if (leaveTypesSnapshot.empty) {
+                throw new Error("No leave types found");
+            }
 
-            leaveBalance[leave.name] = parseInt(leave.max_days) || 0;
+            let leaveBalance = {};
+
+            leaveTypesSnapshot.forEach(doc => {
+                const leave = doc.data();
+                leaveBalance[leave.name] = parseInt(leave.max_days) || 0;
+            });
+
+            // ✅ update inside transaction
+            transaction.update(userRef, {
+                status: "approved",
+                probation: true,
+                leave_balance: leaveBalance,
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
         });
 
-        // 🔄 4. Update employee
-        await userRef.update({
-            status: "approved",
-            probation: true,
-            leave_balance: leaveBalance,
-            approvedAt: firebase.firestore.FieldValue.serverTimestamp() // ⭐ added
-        });
-
-        // 🔔 5. Send notification
+        // ===============================
+        // 🔔 NOTIFICATION (after success)
+        // ===============================
         await db.collection("notifications").add({
             userId: uid,
             role: "employee",
@@ -420,29 +528,104 @@ async function approveEmployee(uid) {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // ✅ Success
-        alert("✅ Employee approved successfully");
+        // ✅ better UX
+        showToast("✅ Employee approved");
 
     } catch (error) {
+
         console.error("Approve Error:", error);
-        alert("❌ Failed to approve employee");
+
+        if (error.message === "Already approved") {
+            showToast("⚠ Already approved");
+        } else {
+            showToast("❌ Failed to approve");
+        }
+
+    } finally {
+        approvingUsers.delete(uid); // 🔓 unlock button
     }
 }
-
 
 // ===============================
 // REJECT EMPLOYEE
 // ===============================
 
-function rejectEmployee(uid){
+let rejectingUsers = new Set(); // 🔥 prevent spam
 
-db.collection("users").doc(uid).update({
-status:"rejected"
-})
-.then(()=>{
-alert("Employee rejected")
-})
+async function rejectEmployee(uid){
 
+    if (rejectingUsers.has(uid)) return;
+
+    if (!confirm("Reject this employee?")) return;
+
+    rejectingUsers.add(uid);
+
+    try {
+
+        const userRef = db.collection("users").doc(uid);
+
+        // ===============================
+        // 🔥 TRANSACTION (SAFE)
+        // ===============================
+        await db.runTransaction(async (transaction) => {
+
+            const userSnap = await transaction.get(userRef);
+
+            if (!userSnap.exists) {
+                throw new Error("User not found");
+            }
+
+            const data = userSnap.data();
+
+            // 🚫 prevent invalid state change
+            if (data.status === "rejected") {
+                throw new Error("Already rejected");
+            }
+
+            if (data.status === "approved") {
+                throw new Error("Already approved");
+            }
+
+            transaction.update(userRef, {
+                status: "rejected",
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        });
+
+        // ===============================
+        // 🔔 NOTIFICATION
+        // ===============================
+        await db.collection("notifications").add({
+            userId: uid,
+            role: "employee",
+            type: "account_rejected",
+            message: "❌ Your account has been rejected",
+            read: false,
+            hidden: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // ✅ smooth UX
+        showToast("❌ Employee rejected");
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (error.message === "Already rejected") {
+            showToast("⚠ Already rejected");
+        } 
+        else if (error.message === "Already approved") {
+            showToast("⚠ Cannot reject approved user");
+        }
+        else {
+            showToast("❌ Failed to reject");
+        }
+
+    } finally {
+        rejectingUsers.delete(uid); // 🔓 unlock
+    }
 }
 
 
@@ -538,10 +721,13 @@ if(name.includes(input) || email.includes(input)){
 // LOAD LEAVE REQUESTS
 // ===============================
 
+let leaveRowMap = new Map();   // 🔥 cache rows
+
 function loadLeaveRequests(){
 
 const leaveTable = document.getElementById("leaveRequests")
-if(!leaveTable) return   // ✅ IMPORTANT FIX
+if(!leaveTable) return
+
 const totalElement = document.getElementById("totalLeaveRequests")
 const insightBox = document.getElementById("aiInsight")
 
@@ -549,55 +735,60 @@ db.collection("leaves")
 .orderBy("createdAt","desc")
 .onSnapshot(snapshot=>{
 
-leaveTable.innerHTML=""
-
-let count = 0
 let leaveCount = {}
+let count = 0
 
-snapshot.forEach(doc=>{
+snapshot.docChanges().forEach(change=>{
 
-let data = doc.data()
+const doc = change.doc
+const data = doc.data()
+const id = doc.id
 
-// ✅ calculate days
+// ===============================
+// CALCULATE DAYS
+// ===============================
 let totalDays = 0
 if(data.startDate && data.endDate){
     totalDays = calculateDays(data.startDate, data.endDate)
 }
 
-// 🤖 AI tracking
+// ===============================
+// AI TRACKING
+// ===============================
 leaveCount[data.userId] = (leaveCount[data.userId] || 0) + 1
 userMap[data.userId] = data.name
+
+// ===============================
+// BUILD ROW FUNCTION
+// ===============================
+function createRow(){
 
 let action = ""
 let aiSuggestion = ""
 
 // 🤖 AI Suggestion
 if(totalDays <= 2){
-    aiSuggestion = `<span style="color:green;font-size:12px;">✅ Safe to approve</span>`
+    aiSuggestion = `<span style="color:green;font-size:12px;">✅ Safe</span>`
 }
 else if(totalDays >= 5){
-    aiSuggestion = `<span style="color:red;font-size:12px;">⚠️ Needs review</span>`
+    aiSuggestion = `<span style="color:red;font-size:12px;">⚠️ Review</span>`
 }
 
 // ACTION
-if(data.status==="pending"){
-
-action = `
-<button onclick="approveLeave('${doc.id}')">Approve</button>
-<button onclick="rejectLeave('${doc.id}')">Reject</button>
-<button onclick="deleteLeave('${doc.id}')">Delete</button>
-<br>${aiSuggestion}
-`
-
+if(data.status === "pending"){
+    action = `
+    <button onclick="approveLeave('${id}')">Approve</button>
+    <button onclick="rejectLeave('${id}')">Reject</button>
+    <button onclick="deleteLeave('${id}')">Delete</button>
+    <br>${aiSuggestion}
+    `
 }else{
-
-action = `<button onclick="deleteLeave('${doc.id}')">Delete</button>`
-
+    action = `<button onclick="deleteLeave('${id}')">Delete</button>`
 }
 
-// 🎨 STATUS
+// STATUS FIX ✅
 let statusBadge = ""
-if(status === "approved"){
+if(data.status === "approved"){
     statusBadge = `<span style="color:green;font-weight:bold;">Approved</span>`
 }
 else if(data.status === "pending"){
@@ -610,38 +801,78 @@ else{
     statusBadge = data.status
 }
 
-// ✅ MOBILE CARD FIX (IMPORTANT)
-let row = `
-<tr>
-<td data-label="User">${data.name}</td>
-<td data-label="Leave Type">${data.leaveType}</td>
-<td data-label="Start Date">${data.startDate}</td>
-<td data-label="End Date">${data.endDate}</td>
-<td data-label="Total Days">${totalDays}</td>
+// CREATE ROW
+let tr = document.createElement("tr")
+tr.id = "leave-"+id
 
-<td data-label="Department">${data.department || "-"}</td>   <!-- ✅ NEW -->
-
-<td data-label="Reason">${data.reason}</td>
-
-<td data-label="Adjustment">${data.adjustment || "-"}</td>   <!-- ✅ NEW -->
-
-<td data-label="Status">${statusBadge}</td>
-<td data-label="Action">${action}</td>
-</tr>
+tr.innerHTML = `
+<td>${data.name}</td>
+<td>${data.leaveType}</td>
+<td>${data.startDate}</td>
+<td>${data.endDate}</td>
+<td>${totalDays}</td>
+<td>${data.department || "-"}</td>
+<td>${data.reason}</td>
+<td>${data.adjustment || "-"}</td>
+<td>${statusBadge}</td>
+<td>${action}</td>
 `
 
-leaveTable.innerHTML += row
+return tr
+}
 
-count++
+// ===============================
+// HANDLE CHANGES
+// ===============================
+
+// 🟢 ADDED
+if(change.type === "added"){
+
+let tr = createRow()
+tr.classList.add("fade-in")
+
+leaveRowMap.set(id, tr)
+leaveTable.prepend(tr)   // latest on top
+}
+
+// 🟡 MODIFIED
+else if(change.type === "modified"){
+
+let oldRow = leaveRowMap.get(id)
+if(oldRow){
+
+let newRow = createRow()
+newRow.classList.add("fade-in")
+
+leaveTable.replaceChild(newRow, oldRow)
+leaveRowMap.set(id, newRow)
+}
+}
+
+// 🔴 REMOVED
+else if(change.type === "removed"){
+
+let row = leaveRowMap.get(id)
+if(row){
+row.remove()
+leaveRowMap.delete(id)
+}
+}
 
 })
 
-// count
+// ===============================
+// UPDATE COUNT
+// ===============================
+count = leaveRowMap.size
+
 if(totalElement){
     totalElement.innerText = count
 }
 
-// 🤖 AI Insight
+// ===============================
+// AI INSIGHT (FIXED)
+// ===============================
 let maxUser = ""
 let max = 0
 
@@ -654,23 +885,12 @@ for(let user in leaveCount){
 
 if(insightBox && maxUser){
     insightBox.innerText =
-"🤖 AI Insight: " + (userMap[maxUser] || "Unknown") +
-" has highest leave requests (" + max + ")"
+    "🤖 AI Insight: " + (userMap[maxUser] || "Unknown") +
+    " has highest leave requests (" + max + ")"
 }
 
 })
 }
-function calculateDays(start, end) {
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-
-    const diffTime = endDate - startDate
-    const diffDays = diffTime / (1000 * 60 * 60 * 24)
-
-    return diffDays + 1   // ✅ include both start & end
-}
-
-
 
 // ===============================
 // APPROVE LEAVE
@@ -731,7 +951,9 @@ usedSnapshot.forEach(doc => {
 
 let usedDays = uniqueDates.size;
 
-let remaining = maxAllowed - usedDays
+let carry = user.carry_forward?.[type] || 0;
+
+let remaining = (maxAllowed + carry) - usedDays;
 
 // ❌ block if insufficient
 if(remaining < days){
@@ -818,6 +1040,25 @@ db.collection("leaves").doc(id).delete()
 // LOAD LEAVE BALANCE TABLE
 // ===============================
 
+// 🔥 GLOBAL CACHE (add at top of file)
+let userCache = []
+
+// 🔥 LOAD USERS ONCE
+async function loadUsersOnce(){
+    const snapshot = await db.collection("users")
+    .where("role","==","employee")
+    .get()
+
+    userCache = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }))
+}
+
+// ===============================
+// LOAD LEAVE BALANCE (OPTIMIZED)
+// ===============================
+
 async function loadLeaveBalance(){
 
 const header = document.getElementById("leaveHeader")
@@ -831,7 +1072,7 @@ table.innerHTML = ""
 if(cards) cards.innerHTML = ""
 
 // ===============================
-// 1. GET LEAVE TYPES
+// 1. GET LEAVE TYPES (ONCE)
 // ===============================
 const leaveTypesSnapshot = await db.collection("leave_types").get()
 
@@ -840,100 +1081,102 @@ let leaveTypes = []
 leaveTypesSnapshot.forEach(doc=>{
     const data = doc.data()
 
-    const leave = {
-    name: data.name,
-    max: parseInt(data.max_days) || 0,
-    settings: data.settings || {}   // 🔥 ADD THIS
-}
+    leaveTypes.push({
+        name: data.name,
+        max: parseInt(data.max_days) || 0,
+        settings: data.settings || {}
+    })
 
-    leaveTypes.push(leave)
-
-    header.innerHTML += `<th>${leave.name}</th>`
+    header.innerHTML += `<th>${data.name}</th>`
 })
 
 // ===============================
-// 2. GET USERS
+// 2. REAL-TIME LEAVE LISTENER
 // ===============================
-const usersSnapshot = await db.collection("users")
-.where("role","==","employee")
-.get()
+db.collection("leaves")
+.where("status","==","approved")
+.onSnapshot((leaveSnap)=>{
+
+let leaveMap = {}
+
+// 🔥 BUILD MAP
+leaveSnap.forEach(doc=>{
+    let d = doc.data()
+
+    if(!leaveMap[d.userId]) leaveMap[d.userId] = {}
+    if(!leaveMap[d.userId][d.leaveType]) leaveMap[d.userId][d.leaveType] = []
+
+    leaveMap[d.userId][d.leaveType].push(d)
+})
+
+// 🔥 CLEAR UI
+table.innerHTML = ""
+if(cards) cards.innerHTML = ""
 
 // ===============================
-// 3. PROCESS EACH USER
+// 3. LOOP USERS FROM CACHE (🔥 FIX)
 // ===============================
-for(const userDoc of usersSnapshot.docs){
+for(const user of userCache){
 
-const user = userDoc.data()
-const uid = userDoc.id
-let carryData = user.carry_forward || {}   // 🔥 NEW
+const uid = user.id
+let carryData = user.carry_forward || {}
 
-// Desktop row
 let row = `
-<tr>
-<td data-label="Employee">${user.name}</td>
-<td data-label="Email">${user.email}</td>
+<tr class="fade-in">
+<td>${user.name}</td>
+<td>${user.email}</td>
 `
 
-// Mobile card
 let cardHTML = `
-<div class="leave-card">
+<div class="leave-card fade-in">
 <h3>${user.name}</h3>
 <p>${user.email}</p>
 `
 
 // ===============================
-// 4. PROCESS EACH LEAVE TYPE
+// 4. LOOP LEAVE TYPES
 // ===============================
 for(const leave of leaveTypes){
 
-// 🔥 Fetch approved leaves
-const leavesSnapshot = await db.collection("leaves")
-.where("userId","==",uid)
-.where("leaveType","==",leave.name)
-.where("status","==","approved")
-.get()
+let leaves = leaveMap[uid]?.[leave.name] || []
 
-let uniqueDates = new Set();
+let uniqueDates = new Set()
 
-leavesSnapshot.forEach(doc => {
+leaves.forEach(l=>{
+    let current = new Date(l.startDate)
+    let end = new Date(l.endDate)
 
-    let d = doc.data();
-    let current = new Date(d.startDate);
-    let end = new Date(d.endDate);
-
-    while (current <= end) {
-        let dateStr = current.toISOString().split("T")[0];
-        uniqueDates.add(dateStr);
-        current.setDate(current.getDate() + 1);
+    while(current <= end){
+        uniqueDates.add(current.toISOString().split("T")[0])
+        current.setDate(current.getDate()+1)
     }
-});
+})
 
-let used = uniqueDates.size;
+let used = uniqueDates.size
 
 // ===============================
 // CALCULATIONS
 // ===============================
 const max = leave.max
-
 let settings = leave.settings || {}
 let isCarryEnabled = settings.carryForward === true
 
-// ✅ ONLY IF ENABLED
-let carry = isCarryEnabled ? (carryData[leave.name] || 0) : 0
+let carry = 0
+
+if(isCarryEnabled){
+    let rawCarry = carryData[leave.name] || 0
+    if(rawCarry > 0 && used > 0){
+        carry = rawCarry
+    }
+}
 
 let totalWithCarry = isCarryEnabled ? (max + carry) : max
-let remaining = totalWithCarry - used
-
-
-
-if(remaining < 0) remaining = 0
+let remaining = Math.max(0, totalWithCarry - used)
 
 let percent = max > 0 ? (used / max) * 100 : 0
 if(percent > 100) percent = 100
 
-// ===============================
-// STATUS + COLOR
-// ===============================
+// STATUS
 let color = "green"
 let statusText = "✅ Available"
 
@@ -950,40 +1193,26 @@ else if(percent > 40){
 }
 
 // ===============================
-// DESKTOP TABLE CELL
+// UI BUILD
 // ===============================
 row += `
-<td data-label="${leave.name}">
+<td>
 <b>${totalWithCarry}</b> / ${remaining}
 <br>
 ${
-    isCarryEnabled
-    ? `<small style="color:green;">
-            📦 +${carry} carried
-       </small>`
-    : `<small style="color:#999;">—</small>`
+isCarryEnabled
+? `<small style="color:green;">📦 +${carry}</small>`
+: `<small style="color:#999;">—</small>`
 }
 </td>
 `
 
-// ===============================
-// MOBILE CARD BLOCK
-// ===============================
 cardHTML += `
 <div class="leave-item">
 
 <div class="leave-top">
 <span>${leave.name}</span>
 <span>${totalWithCarry}/${remaining}</span>
-${
-    isCarryEnabled
-    ? `<div style="font-size:12px;color:green;">
-            📦 +${carry} carried
-       </div>`
-    : `<div style="font-size:12px;color:#999;">
-            —
-       </div>`
-}
 </div>
 
 <div class="leave-remain">
@@ -999,15 +1228,21 @@ Remaining: ${remaining} (${statusText})
 
 }
 
-// close row & card
+// CLOSE ROW
 row += `</tr>`
 cardHTML += `</div>`
 
-// append
 table.innerHTML += row
-if(cards) cards.innerHTML += cardHTML
+
+if(cards){
+    let div = document.createElement("div")
+    div.innerHTML = cardHTML
+    cards.appendChild(div.firstElementChild)
+}
 
 }
+
+})
 
 }
 
@@ -1097,10 +1332,15 @@ if(panel && bell && !panel.contains(e.target) && !bell.contains(e.target)){
 function showToast(message){
 
 let toast = document.createElement("div")
-toast.className = "toast"
+toast.className = "toast fade-in"
 toast.innerText = message
 
 document.body.appendChild(toast)
+
+setTimeout(()=>{
+    toast.style.opacity = "0"
+    toast.style.transform = "translateY(10px)"
+},2500)
 
 setTimeout(()=>{
     toast.remove()
@@ -1291,3 +1531,5 @@ function exportLeaveBalance(){
 
   XLSX.writeFile(wb, "Leave_Balance.xlsx");
 }
+
+
