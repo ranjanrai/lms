@@ -1235,24 +1235,7 @@ input:checked + .slider:before {
     transform: translateY(0);
   }
 }
-.leave-item {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
 
-.leave-item {
-  background: #fff;
-  padding: 12px;
-  border-radius: 10px;
-  margin-top: 10px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-}
-
-.leave-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
 .days {
   background: #e3f2fd;
@@ -1382,7 +1365,7 @@ input:focus {
 
 /* PREMIUM BACKGROUND */
 body{
-    background: linear-gradient(135deg,#4f46e5,#6366f1);
+   background: linear-gradient(135deg,#eef2ff,#f8fafc);
 }
 
 /* PREMIUM CARD */
@@ -1493,4 +1476,85 @@ input::placeholder{
     width: 100%;
 }
 
+}
+/* Fade in animation */
+.fade-in {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button click animation */
+button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Card hover animation */
+.leave-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.leave-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* Progress bar animation */
+.progress-bar {
+  transition: width 0.8s ease-in-out;
+}
+.highlight {
+  animation: flash 0.8s ease;
+}
+
+@keyframes flash {
+  from { background: #d4edda; }
+  to { background: transparent; }
+}
+/* =========================
+   FINAL LEAVE CARD FIX
+========================= */
+
+.leave-item {
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+/* LEAVE NAME */
+.leave-item .leave-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+/* VALUES */
+.leave-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+/* STACK ON MOBILE */
+@media(max-width:768px){
+    .leave-top {
+        flex-direction: column;
+        gap: 2px;
+    }
 }
