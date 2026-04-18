@@ -18,10 +18,11 @@ async function getHolidays(){
 
     const snapshot = await db.collection("holidays").get()
 
-    let holidays = []
+    let holidays = {}
 
     snapshot.forEach(doc=>{
-        holidays.push(doc.data().holiday_date)
+        let data = doc.data()
+        holidays[data.holiday_date] = data.holiday_name
     })
 
     return holidays
@@ -35,16 +36,33 @@ async function checkHolidayInput(){
     const startInput = document.getElementById("startDate")
     const endInput = document.getElementById("endDate")
 
+    function markError(input){
+        input.style.border = "2px solid #dc3545"
+        input.style.background = "#fff5f5"
+    }
+
+    function clearError(input){
+        input.style.border = ""
+        input.style.background = ""
+    }
+
     function validate(){
 
-        if(startInput.value && holidays.includes(startInput.value)){
-            alert("Start date is a holiday!")
-            startInput.value = ""
+        clearError(startInput)
+        clearError(endInput)
+
+        // 🚫 START DATE HOLIDAY
+        if(startInput.value && holidays[startInput.value]){
+            showToast("🚫 Start date falls on a holiday. Please choose a working day.")
+            markError(startInput)
+            return
         }
 
+        // 🚫 END DATE HOLIDAY
         if(endInput.value && holidays.includes(endInput.value)){
-            alert("End date is a holiday!")
-            endInput.value = ""
+            showToast("🚫 End date falls on a holiday. Please choose a working day.")
+            markError(endInput)
+            return
         }
     }
 
@@ -194,15 +212,33 @@ async function applyLeave() {
         // CALCULATE DAYS
         // ===========================
 
-        const holidays = await getHolidays();
+      // ===========================
+// 🚫 HOLIDAY VALIDATION (ADD THIS)
+// ===========================
 
-        let requestedDays = 0;
+const holidays = await getHolidays()
+
+if(holidays[startDate]){
+    showToast(`🚫 ${holidays[startDate]} (${startDate}) is a holiday`)
+    return resetButton()
+}
+
+if(holidays[endDate]){
+    showToast(`🚫 ${holidays[endDate]} (${endDate}) is a holiday`)
+    return resetButton()
+}
+
+// ===========================
+// CALCULATE DAYS
+// ===========================
+
+let requestedDays = 0;
         let current = new Date(startDate);
 
         while (current <= new Date(endDate)) {
             let d = current.toISOString().split("T")[0];
 
-            if (!holidays.includes(d)) {
+           if (!holidays[d]) {
                 requestedDays++;
             }
 
