@@ -71,7 +71,20 @@ function loadLeaveSettings(){
         document.getElementById("startYear").value = data.startYear || "";
         document.getElementById("endMonth").value = data.endMonth || "";
         document.getElementById("endYear").value = data.endYear || "";
-        document.getElementById("carryMode").value = data.carryMode || "manual";
+       const select = document.getElementById("carryMode")
+
+if(select){
+
+  const mode = data.carryMode || "manual"
+
+  console.log("Loaded carry mode:", mode)  // ✅ DEBUG
+
+  // 🔥 force update safely
+  setTimeout(() => {
+    select.value = mode
+  }, 50)
+
+}
 
         // ✅ Update table
         if(table){
@@ -278,4 +291,129 @@ function deleteLeave(id){
 // ===============================
 window.onload = function(){
   loadLeaveInstructions()
+}
+function loadLeaveTypeDropdown(){
+
+  const select = document.getElementById("resetLeaveType")
+  if(!select) return
+
+  db.collection("leave_types").get().then(snapshot=>{
+
+    select.innerHTML = `<option value="">Select Leave Type</option>`
+
+    snapshot.forEach(doc=>{
+      let d = doc.data()
+
+      let option = document.createElement("option")
+      option.value = d.name
+      option.textContent = d.name
+
+      select.appendChild(option)
+    })
+
+  })
+
+}
+
+// 🔥 AUTO LOAD
+document.addEventListener("DOMContentLoaded", loadLeaveTypeDropdown)
+let resetMode = null
+
+function openResetModal(mode){
+
+  resetMode = mode
+
+  const msg = document.getElementById("resetMessage")
+
+  if(mode === "year"){
+    const year = document.getElementById("resetYear").value
+
+    if(!year){
+      alert("Enter year")
+      return
+    }
+
+    msg.innerText = `Reset carry forward for year ${year}?`
+  }
+
+  if(mode === "type"){
+    const type = document.getElementById("resetLeaveType").value
+
+    if(!type){
+      alert("Select leave type")
+      return
+    }
+
+    msg.innerText = `Reset carry forward for ${type}?`
+  }
+
+  document.getElementById("resetModal").style.display = "flex"
+}
+
+function closeResetModal(){
+  document.getElementById("resetModal").style.display = "none"
+}
+async function confirmReset(){
+
+  closeResetModal()
+
+  try{
+
+    const snapshot = await db.collection("users")
+      .where("role","==","employee")
+      .get()
+
+    let batch = db.batch()
+    let count = 0
+
+    const selectedType = document.getElementById("resetLeaveType").value
+
+    snapshot.forEach(doc=>{
+
+      let data = doc.data()
+      let carry = data.carry_forward || {}
+
+      // ===============================
+      // RESET BY TYPE
+      // ===============================
+      if(resetMode === "type"){
+        if(carry[selectedType]){
+          carry[selectedType] = 0
+        }
+      }
+
+      // ===============================
+      // RESET BY YEAR (FULL RESET)
+      // ===============================
+      if(resetMode === "year"){
+        carry = {}
+      }
+
+      const ref = db.collection("users").doc(doc.id)
+
+      batch.update(ref, {
+        carry_forward: carry
+      })
+
+      count++
+
+      if(count === 500){
+        batch.commit()
+        batch = db.batch()
+        count = 0
+      }
+
+    })
+
+    if(count > 0){
+      await batch.commit()
+    }
+
+    alert("✅ Reset completed successfully")
+
+  }catch(error){
+    console.error(error)
+    alert("Error: " + error.message)
+  }
+
 }
