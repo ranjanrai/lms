@@ -79,6 +79,56 @@
   <option value="manual">Manual</option>
   <option value="auto">Automatic</option>
 </select>
+<div class="card" style="margin-top:20px;">
+
+<h3>♻ Carry Forward Reset Controls</h3>
+
+<!-- YEAR RESET -->
+<label>Reset by Year</label>
+<input type="number" id="resetYear" placeholder="Enter year (e.g. 2025)">
+
+<!-- LEAVE TYPE RESET -->
+<label>Reset by Leave Type</label>
+<select id="resetLeaveType">
+  <option value="">Select Leave Type</option>
+</select>
+
+<button onclick="openResetModal('year')" class="btn-primary">
+Reset by Year
+</button>
+
+<button onclick="openResetModal('type')" class="btn-primary" style="margin-top:10px;">
+Reset by Leave Type
+</button>
+
+</div>
+<div id="resetModal" style="
+display:none;
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.5);
+justify-content:center;
+align-items:center;
+z-index:1000;
+">
+
+<div style="
+background:#fff;
+padding:20px;
+border-radius:10px;
+width:300px;
+text-align:center;
+">
+
+<h3>⚠ Confirm Reset</h3>
+<p id="resetMessage"></p>
+
+<button onclick="confirmReset()" style="width:100%;">Confirm</button>
+<button onclick="closeResetModal()" style="width:100%;margin-top:10px;background:red;color:#fff;">Cancel</button>
+
+</div>
+</div>
 <h3>Current Leave Cycle</h3>
 
 <table>
