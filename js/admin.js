@@ -67,6 +67,7 @@ if(data.status === "pending"){
 
 // ✅ ALLOW ACCESS
 autoResetLeaveCycle()
+showCarryModeStatus()   // 🔥 ADD THIS
 loadStats()
 loadEmployees()
 loadLeaveRequests()
@@ -107,7 +108,8 @@ async function autoResetLeaveCycle(){
 
   if(!runYearly && !runMonthly) return;
 
-  console.log("🔄 Running new cycle reset...");
+  console.log("🤖 AUTO Carry Forward Running...");
+console.log("🔄 Running new cycle reset...");
 
   const leaveTypesSnapshot = await db.collection("leave_types").get();
 
@@ -210,13 +212,22 @@ async function autoResetLeaveCycle(){
         finalBalance = max;
       }else{
 
-        let maxCarry = settings.carryForwardMax ?? remaining;
+      if(settings.carryRemaining === true){
 
-        if(settings.carryForwardMax === 0){
-          carry = 0;
-        }else{
-          carry = Math.min(remaining, maxCarry);
-        }
+  // ✅ FULL carry forward
+  carry = remaining;
+
+}else{
+
+  let maxCarry = settings.carryForwardMax ?? remaining;
+
+  if(settings.carryForwardMax === 0){
+    carry = 0;
+  }else{
+    carry = Math.min(remaining, maxCarry);
+  }
+
+}
 
         // 🔵 YEARLY
         if(settings.carryType !== "monthly" && runYearly){
@@ -1560,4 +1571,90 @@ function exportLeaveBalance(){
   XLSX.writeFile(wb, "Leave_Balance.xlsx");
 }
 
+async function showCarryModeStatus(){
 
+  const box = document.getElementById("carryModeStatus")
+  if(!box) return
+
+  try{
+
+    const doc = await db.collection("leave_settings").doc("cycle").get()
+    if(!doc.exists) return
+
+    const data = doc.data()
+
+    const mode = data.carryMode || "manual"
+    const startMonth = parseInt(data.startMonth)
+
+    const today = new Date()
+    const currentYear = today.getFullYear()
+
+    // ===============================
+    // LAST RUN (USING YOUR FIELD)
+    // ===============================
+    let lastRunText = "Not yet executed"
+
+    if(data.lastCarryForwardRun){
+      lastRunText = new Date(data.lastCarryForwardRun).toLocaleString()
+    }
+
+    // ===============================
+    // NEXT RUN
+    // ===============================
+    let nextRun = new Date(currentYear, startMonth - 1, 1)
+
+    if(today > nextRun){
+      nextRun = new Date(currentYear + 1, startMonth - 1, 1)
+    }
+
+    let nextRunText = nextRun.toDateString()
+
+    // ===============================
+    // STATUS
+    // ===============================
+    let status = ""
+
+    if(mode === "auto"){
+      status = data.lastCarryForwardRun
+        ? "🟢 Automatic system active"
+        : "⚠ Not executed yet"
+    }else{
+      status = "🟡 Manual execution required"
+    }
+
+    // ===============================
+    // UI DESIGN
+    // ===============================
+    box.style.display = "block"
+
+    if(mode === "auto"){
+      box.style.background = "#e3f2fd"
+      box.style.color = "#0d47a1"
+    }else{
+      box.style.background = "#fff3cd"
+      box.style.color = "#856404"
+    }
+
+    box.innerHTML = `
+      <div style="font-size:16px;">
+        ${mode === "auto" ? "🤖 AUTOMATIC MODE" : "⚙ MANUAL MODE"}
+      </div>
+
+      <div style="margin-top:6px;">
+        <b>Last Run:</b> ${lastRunText}
+      </div>
+
+      <div>
+        <b>Next Run:</b> ${nextRunText}
+      </div>
+
+      <div style="margin-top:4px;">
+        <b>Status:</b> ${status}
+      </div>
+    `
+
+  }catch(error){
+    console.log(error)
+  }
+
+}
