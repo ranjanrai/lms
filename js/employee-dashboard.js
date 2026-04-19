@@ -67,7 +67,8 @@ loadDashboard(uid)
 loadLeaveBalance(uid)
 loadNotifications(uid)
 loadLeaveInstructions()
-
+// ✅ AUTO CARRY FORWARD (ADD THIS)
+checkAutoCarryForward()
 })
 
 
@@ -376,12 +377,12 @@ Promise.all([
             let carryType = settings.carryType || null
 
             let carry = 0
-            if(isCarryEnabled){
-                let rawCarry = carryData[name] || 0
-                if(rawCarry > 0 && used > 0){
-                    carry = rawCarry
-                }
-            }
+           if(isCarryEnabled){
+    let rawCarry = carryData[name] || 0
+    if(rawCarry > 0){
+        carry = rawCarry   // ✅ FIX
+    }
+}
 
             let total = isCarryEnabled ? (max + carry) : max
             let remaining = Math.max(0, total - used)
@@ -395,7 +396,7 @@ Promise.all([
 
                 tr.innerHTML = `
 <td>${name}</td>
-<td><b>${total}</b> / ${remaining}</td>
+<td><b>${remaining}</b> / ${total}</td>
 <td>${used}</td>
 <td>${remaining}</td>
 <td>
