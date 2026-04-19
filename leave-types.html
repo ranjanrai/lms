@@ -119,6 +119,11 @@
 <option value="true">Yes</option>
 <option value="false">No</option>
 </select>
+<label>Carry Remaining (Full Balance)</label>
+<select id="carryRemaining">
+  <option value="true">Yes</option>
+  <option value="false">No</option>
+</select>
 <input type="number" id="carryForwardMax" placeholder="Max Days">
 <!-- ✅ ADD THIS HERE -->
 <label>Carry Type</label>
@@ -205,6 +210,7 @@ settings:{
   monthlyLimit:0,
   monthlyEnabled:false,
   carryForward:false,
+  carryRemaining:false,
   carryForwardMax:0,
   carryType: "yearly",
   after1YearOnly:false,
@@ -382,6 +388,7 @@ document.getElementById("probationLimit").value = s.probationLimit || 0;
 document.getElementById("monthlyEnabled").value = (s.monthlyEnabled ?? false).toString();
 
 document.getElementById("carryForward").value = (s.carryForward ?? false).toString();
+document.getElementById("carryRemaining").value = (s.carryRemaining ?? false).toString();
 document.getElementById("carryType").value = s.carryType || "yearly";
 document.getElementById("carryForwardMax").value = s.carryForwardMax || 0;
 
@@ -416,6 +423,7 @@ monthlyLimit: monthlyLimit,
 monthlyEnabled: document.getElementById("monthlyEnabled").value === "true",
 
 carryForward: document.getElementById("carryForward").value === "true",
+carryRemaining: document.getElementById("carryRemaining").value === "true",
 carryForwardMax: Number(document.getElementById("carryForwardMax").value) || 0,
 carryType: document.getElementById("carryType").value,
 
